@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<strings>
+  <string id="30000">Rdio</string>
+  <string id="30100">Rdio API Key</string>
+  <string id="30101">Rdio API Secret</string>
+  <string id="30102">Rdio Username</string>
+  <string id="30103">Rdio Password</string>
+</strings>

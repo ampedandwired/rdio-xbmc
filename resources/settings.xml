@@ -1,0 +1,9 @@
+<?xml version ="1.0" encod ing="u tf-8" standa lone=" yes"?>
+<settings>
+  <category label= "General">
+    <setting id="username" type="text" label="30100" default="" />
+    <setting id="password" type="text" option="hidden" label="30101" default="" />
+    <setting id="apikey" type="text" label="30102" default="" />
+    <setting id="apisecret" type="text" option="hidden" label="30103" default="" />
+  </category>
+</settings>
