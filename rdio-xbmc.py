@@ -16,6 +16,7 @@
 
 import sys
 import os
+import inspect
 from urlparse import urlparse, parse_qs
 from t0mm0.common.addon import Addon
 from t0mm0.common.net import Net
@@ -31,17 +32,23 @@ class XbmcRdioOperation:
   
   def __init__(self, addon):
     self._addon = addon
+    self._rdio_api = RdioApi(self._addon)
     
   def execute(self):
-    getattr(self, self._addon.queries['mode'])(addon.queries)
+    self._addon.log_debug("Executing Rdio operation: " + str(self._addon.queries))
+    handler = getattr(self, self._addon.queries['mode'])
+    handler_arg_count  = len(inspect.getargspec(handler).args)
+    if handler_arg_count > 1:
+      handler(**self._addon.queries)
+    else:
+      handler()
 
-  def main(self, params):
-    self._addon.log_debug("main " + str(params))
-    self._addon.add_item({'mode': 'login'}, {'title': 'Login'})
+  def main(self):
+    self._addon.add_item({'mode': 'get_playback_token'}, {'title': 'Token'})
     self._addon.end_of_directory()
     
-  def login(self, params):
-    self._rdio_api = RdioApi(self._addon)
+  def get_playback_token(self):
+    token = self._rdio_api.get_playback_token()
 
 
 class RdioApi:
@@ -90,6 +97,11 @@ class RdioApi:
     self._addon.save_data(self._AUTH_STATE_FILE_NAME, self._auth_state)
     self._addon.log_notice("Successfully authenticated to Rdio")
 
+  def _call(self, method, **args):
+    return self._rdio.call(method, **args)
+    
+  def get_playback_token(self):
+    return self._call('getPlaybackToken')
+
 
 XbmcRdioOperation(addon).execute()
-
