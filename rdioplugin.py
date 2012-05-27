@@ -43,8 +43,15 @@ class XbmcRdioOperation:
     albums = self._rdio_api.call('getAlbumsInCollection')
     for album in albums:
       self._addon.add_directory({'mode': 'tracks', 'key': album['key']},
-        {'title': '%s (%s)' % (album['name'], album['artist'])}, img = album['icon'])
-      
+        {
+          'title': '%s (%s)' % (album['name'], album['artist']),
+          'artist': album['artist'],
+          'date': album['releaseDate'],
+          'duration': str(album['duration']),
+          'label2': album['artist']
+        },
+        img = album['icon'])
+
     self._addon.end_of_directory()
     
   def artists(self):
@@ -55,23 +62,31 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
   def playlists(self):
-    playlists = self._rdio_api.call('getPlaylists')
-    for playlist in playlists['owned']:
-      self._addon.add_directory({'mode': 'tracks', 'key': playlist['key']}, {'title': playlist['name']})
-
-    for playlist in playlists['collab']:
-      self._addon.add_directory({'mode': 'tracks', 'key': playlist['key']}, { 'title': '%s (%s)' % (playlist['name'], self._addon.get_string(30201)) })
-
-    for playlist in playlists['subscribed']:
-      self._addon.add_directory({'mode': 'tracks', 'key': playlist['key']}, { 'title': '%s (%s)' % (playlist['name'], self._addon.get_string(30202)) })
-
+    playlists = self._rdio_api.call('getPlaylists', extras = 'description')
+    self._add_playlist(playlists, 'owned')
+    self._add_playlist(playlists, 'collab')
+    self._add_playlist(playlists, 'subscribed')
     self._addon.end_of_directory()
     
+  def _add_playlist(self, playlists, type):
+    for playlist in playlists[type]:
+      self._addon.add_directory({'mode': 'tracks', 'key': playlist['key']},
+        {'title': playlist['name'], 'label2': playlist['owner']}, img = playlist['icon'])
+        
   def tracks(self, **params):
     key = params['key']
     track_container = self._rdio_api.call('get', keys = key, extras = 'tracks')[key]
     for track in track_container['tracks']:
-      self._addon.add_item({'mode': 'play', 'key': track['key']}, {'title': track['name']}, item_type = 'music')
+      self._addon.add_item({'mode': 'play', 'key': track['key']},
+        {
+          'title': track['name'],
+          'artist': track['artist'],
+          'album': track['album'],
+          'duration': track['duration'],
+          'tracknumber': track['trackNum']
+        },
+        item_type = 'music',
+        img = track['icon'])
       
     self._addon.end_of_directory()
 
