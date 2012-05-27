@@ -38,30 +38,38 @@ class XbmcRdioOperation:
     self._rdio_api = RdioApi(self._addon)
 
   def main(self):
+    self._addon.add_directory({'mode': 'artists'}, {'title': self._addon.get_string(30203)})
     self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
+    self._addon.end_of_directory()
+    
+  def artists(self):
+    artists = self._rdio_api.call('getArtistsInCollection')
+    for artist in artists:
+      self._addon.add_directory({'mode': 'tracks', 'key': artist['key']}, {'title': artist['name']})
+      
     self._addon.end_of_directory()
 
   def playlists(self):
     playlists = self._rdio_api.call('getPlaylists')
     for playlist in playlists['owned']:
-      self._addon.add_directory({'mode': 'playlist', 'key': playlist['key']}, {'title': playlist['name']})
+      self._addon.add_directory({'mode': 'tracks', 'key': playlist['key']}, {'title': playlist['name']})
 
     for playlist in playlists['collab']:
-      self._addon.add_directory({'mode': 'playlist', 'key': playlist['key']}, {'title': playlist['name'] + ' (Collab)'})
+      self._addon.add_directory({'mode': 'tracks', 'key': playlist['key']}, { 'title': '%s (%s)' % (playlist['name'], self._addon.get_string(30201)) })
 
     for playlist in playlists['subscribed']:
-      self._addon.add_directory({'mode': 'playlist', 'key': playlist['key']}, {'title': playlist['name'] + ' (Subscribed)'})
+      self._addon.add_directory({'mode': 'tracks', 'key': playlist['key']}, { 'title': '%s (%s)' % (playlist['name'], self._addon.get_string(30202)) })
 
     self._addon.end_of_directory()
     
-  def playlist(self, **params):
-    playlist_key = params['key']
-    playlist = self._rdio_api.call('get', keys = playlist_key, extras = 'tracks')[playlist_key]
-    for track in playlist['tracks']:
+  def tracks(self, **params):
+    key = params['key']
+    track_container = self._rdio_api.call('get', keys = key, extras = 'tracks')[key]
+    for track in track_container['tracks']:
       self._addon.add_item({'mode': 'play', 'key': track['key']}, {'title': track['name']}, item_type = 'music')
-
-    self._addon.end_of_directory()
       
+    self._addon.end_of_directory()
+
   def play(self, **params):
     track_id = params['key']
     rtmp_info = get_rtmp_info(RDIO_DOMAIN, self._rdio_api.get_playback_token(), track_id)
