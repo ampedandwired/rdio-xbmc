@@ -46,6 +46,12 @@ class XbmcRdioOperation:
     for playlist in playlists['owned']:
       self._addon.add_directory({'mode': 'playlist', 'key': playlist['key']}, {'title': playlist['name']})
 
+    for playlist in playlists['collab']:
+      self._addon.add_directory({'mode': 'playlist', 'key': playlist['key']}, {'title': playlist['name'] + ' (Collab)'})
+
+    for playlist in playlists['subscribed']:
+      self._addon.add_directory({'mode': 'playlist', 'key': playlist['key']}, {'title': playlist['name'] + ' (Subscribed)'})
+
     self._addon.end_of_directory()
     
   def playlist(self, **params):
