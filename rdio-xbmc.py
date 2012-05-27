@@ -38,11 +38,26 @@ class XbmcRdioOperation:
     self._rdio_api = RdioApi(self._addon)
 
   def main(self):
-    self._addon.add_item({'mode': 'play', 'rdio_key': 't2886649'}, {'title': 'Play'}, item_type = 'music')
+    self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
     self._addon.end_of_directory()
 
+  def playlists(self):
+    playlists = self._rdio_api.call('getPlaylists')
+    for playlist in playlists['owned']:
+      self._addon.add_directory({'mode': 'playlist', 'key': playlist['key']}, {'title': playlist['name']})
+
+    self._addon.end_of_directory()
+    
+  def playlist(self, **params):
+    playlist_key = params['key']
+    playlist = self._rdio_api.call('get', keys = playlist_key, extras = 'tracks')[playlist_key]
+    for track in playlist['tracks']:
+      self._addon.add_item({'mode': 'play', 'key': track['key']}, {'title': track['name']}, item_type = 'music')
+
+    self._addon.end_of_directory()
+      
   def play(self, **params):
-    track_id = params['rdio_key']
+    track_id = params['key']
     rtmp_info = get_rtmp_info(RDIO_DOMAIN, self._rdio_api.get_playback_token(), track_id)
     stream_url = rtmp_info['rtmp']
     for key, value in rtmp_info.items():
@@ -50,7 +65,7 @@ class XbmcRdioOperation:
 
     self._addon.log_debug("Resolved playback URL to " + stream_url)
     self._addon.resolve_url(stream_url)
-
+    
   def execute(self):
     self._addon.log_debug("Executing Rdio operation: " + str(self._addon.queries))
     handler = getattr(self, self._addon.queries['mode'])
@@ -108,17 +123,19 @@ class RdioApi:
     self._rdio.complete_authentication(verifier)
 
     self._addon.log_notice("Getting playback token")
-    self._state['playback_token'] = self._call('getPlaybackToken', domain=RDIO_DOMAIN)
+    self._state['playback_token'] = self.call('getPlaybackToken', domain=RDIO_DOMAIN)
     self._addon.log_notice("Got playback token: " + self._state['playback_token'])
     
     self._addon.save_data(self._STATE_FILE_NAME, self._state)
     self._addon.log_notice("Successfully authenticated to Rdio")
 
-  def _call(self, method, **args):
+  def call(self, method, **args):
+    self._addon.log_debug("Executing Rdio API call '%s' with args %s" % (method, args))
     return self._rdio.call(method, **args)
     
   def get_playback_token(self):
     return self._state['playback_token']
-    
+
+
 
 XbmcRdioOperation(addon).execute()
