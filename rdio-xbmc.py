@@ -38,8 +38,17 @@ class XbmcRdioOperation:
     self._rdio_api = RdioApi(self._addon)
 
   def main(self):
+    self._addon.add_directory({'mode': 'albums'}, {'title': self._addon.get_string(30204)})
     self._addon.add_directory({'mode': 'artists'}, {'title': self._addon.get_string(30203)})
     self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
+    self._addon.add_directory({'mode': 'settings'}, {'title': self._addon.get_string(30205)})
+    self._addon.end_of_directory()
+
+  def albums(self):
+    albums = self._rdio_api.call('getAlbumsInCollection')
+    for album in albums:
+      self._addon.add_directory({'mode': 'tracks', 'key': album['key']}, { 'title': '%s (%s)' % (album['name'], album['artist']) })
+      
     self._addon.end_of_directory()
     
   def artists(self):
@@ -79,6 +88,9 @@ class XbmcRdioOperation:
 
     self._addon.log_debug("Resolved playback URL to " + stream_url)
     self._addon.resolve_url(stream_url)
+    
+  def settings(self):
+    self._addon.show_settings()
     
   def execute(self):
     self._addon.log_debug("Executing Rdio operation: " + str(self._addon.queries))
