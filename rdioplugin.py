@@ -42,7 +42,8 @@ class XbmcRdioOperation:
   def albums(self):
     albums = self._rdio_api.call('getAlbumsInCollection')
     for album in albums:
-      self._addon.add_directory({'mode': 'tracks', 'key': album['key']}, { 'title': '%s (%s)' % (album['name'], album['artist']) })
+      self._addon.add_directory({'mode': 'tracks', 'key': album['key']},
+        {'title': '%s (%s)' % (album['name'], album['artist'])}, img = album['icon'])
       
     self._addon.end_of_directory()
     
