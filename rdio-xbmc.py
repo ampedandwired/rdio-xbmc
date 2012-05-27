@@ -27,6 +27,9 @@ addon = Addon(ADDON_ID, argv=sys.argv)
 sys.path.append(os.path.join(addon.get_path(), 'resources', 'lib'))
 
 from rdioapi import Rdio
+from rdiostream import get_rtmp_info
+
+RDIO_DOMAIN = 'localhost'
 
 class XbmcRdioOperation:
   
@@ -34,21 +37,34 @@ class XbmcRdioOperation:
     self._addon = addon
     self._rdio_api = RdioApi(self._addon)
     
-  def execute(self):
-    self._addon.log_debug("Executing Rdio operation: " + str(self._addon.queries))
-    handler = getattr(self, self._addon.queries['mode'])
-    handler_arg_count  = len(inspect.getargspec(handler).args)
-    if handler_arg_count > 1:
-      handler(**self._addon.queries)
-    else:
-      handler()
-
   def main(self):
     self._addon.add_item({'mode': 'get_playback_token'}, {'title': 'Token'})
+    self._addon.add_item({'mode': 'play', 'rdio_key': 't2886649'}, {'title': 'Play'}, item_type = 'music')
     self._addon.end_of_directory()
     
   def get_playback_token(self):
     token = self._rdio_api.get_playback_token()
+    self._addon.log_debug("Got playback token " + token)
+    return token
+    
+  def play(self, **params):
+    track_id = params['rdio_key']
+    rtmp_info = get_rtmp_info(RDIO_DOMAIN, self.get_playback_token(), track_id)
+    stream_url = rtmp_info['rtmp']
+    for key, value in rtmp_info.items():
+      stream_url += '' if key == 'rtmp' else ' %s=%s' % (key, value)
+
+    self._addon.log_debug("Resolved playback URL to " + stream_url)
+    self._addon.resolve_url(stream_url)
+
+  def execute(self):
+    self._addon.log_debug("Executing Rdio operation: " + str(self._addon.queries))
+    handler = getattr(self, self._addon.queries['mode'])
+    handler_args = inspect.getargspec(handler)
+    if handler_args.keywords and len(handler_args.keywords) > 1:
+      handler(**self._addon.queries)
+    else:
+      handler()
 
 
 class RdioApi:
@@ -101,7 +117,7 @@ class RdioApi:
     return self._rdio.call(method, **args)
     
   def get_playback_token(self):
-    return self._call('getPlaybackToken')
+    return self._call('getPlaybackToken', domain=RDIO_DOMAIN)
 
 
 XbmcRdioOperation(addon).execute()
