@@ -5,7 +5,7 @@
     <import addon="script.module.parsedom" version="0.9.2"/>
     <import addon="script.module.t0mm0.common" version="1.1.0"/>
   </requires>
-  <extension point="xbmc.python.pluginsource" library="rdio-xbmc.py">
+  <extension point="xbmc.python.pluginsource" library="rdioxbmc.py">
     <provides>audio</provides>
   </extension>
   <extension point="xbmc.addon.metadata">
