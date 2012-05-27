@@ -36,20 +36,14 @@ class XbmcRdioOperation:
   def __init__(self, addon):
     self._addon = addon
     self._rdio_api = RdioApi(self._addon)
-    
+
   def main(self):
-    self._addon.add_item({'mode': 'get_playback_token'}, {'title': 'Token'})
     self._addon.add_item({'mode': 'play', 'rdio_key': 't2886649'}, {'title': 'Play'}, item_type = 'music')
     self._addon.end_of_directory()
-    
-  def get_playback_token(self):
-    token = self._rdio_api.get_playback_token()
-    self._addon.log_debug("Got playback token " + token)
-    return token
-    
+
   def play(self, **params):
     track_id = params['rdio_key']
-    rtmp_info = get_rtmp_info(RDIO_DOMAIN, self.get_playback_token(), track_id)
+    rtmp_info = get_rtmp_info(RDIO_DOMAIN, self._rdio_api.get_playback_token(), track_id)
     stream_url = rtmp_info['rtmp']
     for key, value in rtmp_info.items():
       stream_url += '' if key == 'rtmp' else ' %s=%s' % (key, value)
@@ -68,21 +62,21 @@ class XbmcRdioOperation:
 
 
 class RdioApi:
-  _AUTH_STATE_FILE_NAME = 'rdio-config.json'
+  _STATE_FILE_NAME = 'rdio-state.json'
   
   def __init__(self, addon):
     self._addon = addon
     self._net = Net()
-    self._auth_state = addon.load_data(self._AUTH_STATE_FILE_NAME)
-    if not self._auth_state:
+    self._state = addon.load_data(self._STATE_FILE_NAME)
+    if not self._state:
       addon.log_debug("Persistent auth state not loaded")
-      self._auth_state = {'auth_state': {}}
+      self._state = {'rdio_api': {'auth_state': {}}, 'playback_token': None}
     else:
       addon.log_debug("Loaded persistent auth state")
 
     apikey = addon.get_setting('apikey')
     addon.log_debug("Connecting to Rdio with apikey " + apikey)
-    self._rdio = Rdio(apikey, addon.get_setting('apisecret'), self._auth_state)
+    self._rdio = Rdio(apikey, addon.get_setting('apisecret'), self._state['rdio_api'])
     if not self._rdio.authenticated:
       self._authenticate()
   
@@ -106,18 +100,25 @@ class RdioApi:
 
     oauth_token = CommonFunctions.parseDOM(html, 'input', {'name': 'oauth_token'}, 'value')[0]
     verifier = CommonFunctions.parseDOM(html, 'input', {'name': 'verifier'}, 'value')[0]
+    
     self._addon.log_notice("Approving oauth token %s with pin %s" % (oauth_token, verifier))
     self._net.http_POST(auth_url, {'oath_token': oauth_token, 'verifier': verifier, 'approve': ''})
+    
     self._addon.log_notice("Verifying OAuth token on Rdio API with pin " + verifier)
     self._rdio.complete_authentication(verifier)
-    self._addon.save_data(self._AUTH_STATE_FILE_NAME, self._auth_state)
+
+    self._addon.log_notice("Getting playback token")
+    self._state['playback_token'] = self._call('getPlaybackToken', domain=RDIO_DOMAIN)
+    self._addon.log_notice("Got playback token: " + self._state['playback_token'])
+    
+    self._addon.save_data(self._STATE_FILE_NAME, self._state)
     self._addon.log_notice("Successfully authenticated to Rdio")
 
   def _call(self, method, **args):
     return self._rdio.call(method, **args)
     
   def get_playback_token(self):
-    return self._call('getPlaybackToken', domain=RDIO_DOMAIN)
-
+    return self._state['playback_token']
+    
 
 XbmcRdioOperation(addon).execute()
