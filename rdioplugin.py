@@ -17,6 +17,7 @@
 import sys
 import os
 import inspect
+import time
 import xbmcplugin
 from t0mm0.common.addon import Addon
 import rdiocommon
@@ -128,13 +129,18 @@ class XbmcRdioOperation:
     self._addon.show_settings()
     
   def execute(self):
-    self._addon.log_debug("Executing Rdio operation: " + str(self._addon.queries))
-    handler = getattr(self, self._addon.queries['mode'])
+    start_time = time.clock()
+    mode = self._addon.queries['mode']
+    self._addon.log_debug("Executing Rdio plugin operation %s with params %s" % (mode, str(self._addon.queries)))
+    handler = getattr(self, mode)
     handler_args = inspect.getargspec(handler)
     if handler_args.keywords and len(handler_args.keywords) > 1:
       handler(**self._addon.queries)
     else:
       handler()
+
+    time_ms = (time.clock() - start_time) * 1000
+    self._addon.log_debug("Executed Rdio plugin operation %s in %i ms" % (mode, time_ms))
 
 
 XbmcRdioOperation(addon).execute()

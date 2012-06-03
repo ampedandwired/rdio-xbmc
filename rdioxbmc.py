@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with rdio-xbmc.  If not, see <http://www.gnu.org/licenses/>.
 
+import time
 from urlparse import urlparse, parse_qs
 from t0mm0.common.addon import Addon
 from t0mm0.common.net import Net
@@ -86,8 +87,13 @@ class RdioApi:
     return stream_url
 
   def call(self, method, **args):
+    start_time = time.clock()
     self._addon.log_debug("Executing Rdio API call '%s' with args %s" % (method, args))
-    return self._rdio.call(method, **args)
+    result = self._rdio.call(method, **args)
+    self._addon.log_debug("Rdio API response: " + str(result))
+    time_ms = (time.clock() - start_time) * 1000
+    self._addon.log_debug("Executed Rdio API call %s in %i ms" % (method, time_ms))
+    return result
     
   def get_playback_token(self):
     return self._state['playback_token']
