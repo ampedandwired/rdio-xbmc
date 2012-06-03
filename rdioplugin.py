@@ -59,7 +59,7 @@ class XbmcRdioOperation:
 
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ARTIST)
-    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE) # TODO Sort by date doesn't work due to date format in infolabels
+    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
     
