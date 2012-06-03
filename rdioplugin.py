@@ -17,7 +17,9 @@
 import sys
 import os
 import inspect
+import xbmcplugin
 from t0mm0.common.addon import Addon
+import rdiocommon
 
 ADDON_ID = 'plugin.audio.rdio'
 addon = Addon(ADDON_ID, argv=sys.argv)
@@ -42,23 +44,39 @@ class XbmcRdioOperation:
   def albums(self):
     albums = self._rdio_api.call('getAlbumsInCollection')
     for album in albums:
-      self._addon.add_directory({'mode': 'tracks', 'key': album['key']},
+      self._addon.add_item({'mode': 'tracks', 'key': album['key']},
         {
           'title': '%s (%s)' % (album['name'], album['artist']),
+          'album': album['name'],
           'artist': album['artist'],
-          'date': album['releaseDate'],
-          'duration': str(album['duration']),
-          'label2': album['artist']
+          'date': rdiocommon.iso_date_to_xbmc_date(album['releaseDate']),
+          'duration': album['duration']
         },
-        img = album['icon'])
+        item_type = 'music',
+        img = album['icon'],
+        total_items = album['length'],
+        is_folder = True)
 
+    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
+    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ARTIST)
+    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE) # TODO Sort by date doesn't work due to date format in infolabels
+    xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
     
   def artists(self):
     artists = self._rdio_api.call('getArtistsInCollection')
     for artist in artists:
-      self._addon.add_directory({'mode': 'tracks', 'key': artist['key']}, {'title': artist['name']})
+      self._addon.add_item({'mode': 'tracks', 'key': artist['key']},
+        {
+          'title': artist['name'],
+          'artist': artist['name']
+        },
+        item_type = 'music',
+        img = artist['icon'],
+        is_folder = True)
       
+    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ARTIST)
+    xbmcplugin.setContent(self._addon.handle, 'artists')
     self._addon.end_of_directory()
 
   def playlists(self):
@@ -66,13 +84,24 @@ class XbmcRdioOperation:
     self._add_playlist(playlists, 'owned')
     self._add_playlist(playlists, 'collab')
     self._add_playlist(playlists, 'subscribed')
+
+    xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
     
-  def _add_playlist(self, playlists, type):
-    for playlist in playlists[type]:
-      self._addon.add_directory({'mode': 'tracks', 'key': playlist['key']},
-        {'title': playlist['name'], 'label2': playlist['owner']}, img = playlist['icon'])
-        
+  def _add_playlist(self, playlists, playlist_type):
+    for playlist in playlists[playlist_type]:
+      playlist_title = playlist['name'] if playlist_type == 'owned' else '%s (%s)' % (playlist['name'], playlist['owner'])
+      self._addon.add_item({'mode': 'tracks', 'key': playlist['key']},
+        {
+          'title': playlist_title,
+          'album': playlist['name'],
+          'artist': playlist['owner']
+        },
+        item_type = 'music',
+        img = playlist['icon'],
+        total_items = playlist['length'],
+        is_folder = True)
+
   def tracks(self, **params):
     key = params['key']
     track_container = self._rdio_api.call('get', keys = key, extras = 'tracks')[key]
