@@ -33,7 +33,7 @@ def get_rtmp_info(domain, token, track, flash_url=None):
     if not flash_url:
         flash_url = resolve_url(FLASH_PLAYER_URL)
 
-    svc = RemotingService(AMF_ENDPOINT, referer=flash_url, amf_version=3)
+    svc = RemotingService(AMF_ENDPOINT, referer=flash_url)
     svc.addHeader('Auth', chr(5))
     rdio_svc = svc.getService('rdio')
 
