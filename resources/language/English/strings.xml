@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <strings>
   <string id="30000">Rdio</string>
+
   <string id="30100">Rdio Username</string>
   <string id="30101">Rdio Password</string>
   <string id="30102">Rdio API Key</string>
   <string id="30103">Rdio API Secret</string>
+
   <string id="30200">Playlists</string>
   <string id="30201">Collaborative</string>
   <string id="30202">Subscribed</string>
   <string id="30203">Artists</string>
   <string id="30204">Albums</string>
   <string id="30205">Settings</string>
+  <string id="30206">Login</string>
+  <string id="30207">Reauthenticate</string>
+
+  <string id="30900">You must supply a valid Rdio username/password and Rdio API credentials in the plugin settings before you can use this plugin</string>
+  <string id="30901">Failed to authenticate to Rdio</string>
 </strings>

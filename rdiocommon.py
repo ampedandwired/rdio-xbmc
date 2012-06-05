@@ -23,5 +23,3 @@ def iso_date_to_xbmc_date(iso_date):
     return '%s.%s.%s' % (match.group(3), match.group(2), match.group(1))
   else:
     return iso_date
-
-  

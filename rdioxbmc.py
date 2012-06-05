@@ -26,26 +26,24 @@ from rdiostream import get_rtmp_info
 class RdioApi:
   _STATE_FILE_NAME = 'rdio-state.json'
   _RDIO_DOMAIN = 'localhost'
-  
+  _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None}
+
   def __init__(self, addon):
     self._addon = addon
     self._net = Net()
     self._state = addon.load_data(self._STATE_FILE_NAME)
     if not self._state:
-      addon.log_debug("Persistent auth state not loaded")
-      self._state = {'rdio_api': {'auth_state': {}}, 'playback_token': None}
+      addon.log_debug("Persistent auth state not loaded - initialising new state")
+      self._state = self._INITIAL_STATE
     else:
       addon.log_debug("Loaded persistent auth state")
 
     apikey = addon.get_setting('apikey')
-    addon.log_debug("Connecting to Rdio with apikey " + apikey)
     self._rdio = Rdio(apikey, addon.get_setting('apisecret'), self._state['rdio_api'])
-    if not self._rdio.authenticated:
-      self._authenticate()
-  
-    addon.log_notice("Connected successfully to Rdio with apikey " + apikey)
-      
-  def _authenticate(self):
+
+    addon.log_notice("Connected to Rdio with apikey " + apikey)
+
+  def authenticate(self):
     self._addon.log_notice("Authenticating to Rdio")
     auth_url = self._rdio.begin_authentication('oob')
     parsed_auth_url = urlparse(auth_url)
@@ -60,25 +58,48 @@ class RdioApi:
       password = self._addon.get_setting('password')
       self._addon.log_notice("Logging in to Rdio as %s using URL %s" % (username, login_url))
       html = self._net.http_POST(login_url, {'username': username, 'password': password}).content
+      login_error_html = CommonFunctions.parseDOM(html, 'div', {'class': 'error-message'})
+      if login_error_html:
+        error_messages = CommonFunctions.parseDOM(login_error_html, 'li')
+        if error_messages:
+          error_message = error_messages[0] if type(error_messages) is list else error_messages
+        else:
+          error_message = login_error_html
 
-    oauth_token = CommonFunctions.parseDOM(html, 'input', {'name': 'oauth_token'}, 'value')[0]
+        raise RdioAuthenticationException(error_message)
+
+    oauth_token_values = CommonFunctions.parseDOM(html, 'input', {'name': 'oauth_token'}, 'value')
+    if not oauth_token_values:
+      raise RdioAuthenticationException("Login failed")
+
+    oauth_token = oauth_token_values[0]
     verifier = CommonFunctions.parseDOM(html, 'input', {'name': 'verifier'}, 'value')[0]
-    
+
     self._addon.log_notice("Approving oauth token %s with pin %s" % (oauth_token, verifier))
     self._net.http_POST(auth_url, {'oath_token': oauth_token, 'verifier': verifier, 'approve': ''})
-    
+
     self._addon.log_notice("Verifying OAuth token on Rdio API with pin " + verifier)
     self._rdio.complete_authentication(verifier)
 
     self._addon.log_notice("Getting playback token")
     self._state['playback_token'] = self.call('getPlaybackToken', domain=self._RDIO_DOMAIN)
     self._addon.log_notice("Got playback token: " + self._state['playback_token'])
-    
+
     self._addon.save_data(self._STATE_FILE_NAME, self._state)
     self._addon.log_notice("Successfully authenticated to Rdio")
-    
+
+  def logout(self):
+    self._addon.log_notice("Logging out from Rdio")
+    self._rdio.logout()
+    self._state = self._INITIAL_STATE
+    self._addon.save_data(self._STATE_FILE_NAME, self._state)
+    self._addon.log_notice("Successfully logged out from Rdio")
+
+  def authenticated(self):
+    return self._rdio.authenticated
+
   def resolve_playback_url(self, key):
-    rtmp_info = get_rtmp_info(self._RDIO_DOMAIN, self.get_playback_token(), key)
+    rtmp_info = get_rtmp_info(self._RDIO_DOMAIN, self._state['playback_token'], key)
     stream_url = rtmp_info['rtmp']
     for key, value in rtmp_info.items():
       stream_url += '' if key == 'rtmp' else ' %s=%s' % (key, value)
@@ -87,6 +108,9 @@ class RdioApi:
     return stream_url
 
   def call(self, method, **args):
+    if not self.authenticated():
+      self.authenticate()
+
     start_time = time.clock()
     self._addon.log_debug("Executing Rdio API call '%s' with args %s" % (method, args))
     result = self._rdio.call(method, **args)
@@ -94,9 +118,8 @@ class RdioApi:
     time_ms = (time.clock() - start_time) * 1000
     self._addon.log_debug("Executed Rdio API call %s in %i ms" % (method, time_ms))
     return result
-    
-  def get_playback_token(self):
-    return self._state['playback_token']
 
 
 
+class RdioAuthenticationException(Exception):
+  pass

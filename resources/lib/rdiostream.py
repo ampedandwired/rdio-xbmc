@@ -8,7 +8,6 @@ FLASH_PLAYER_URL = 'http://www.rdio.com/api/swf'
 # API endpoint for AMF
 AMF_ENDPOINT = 'http://www.rdio.com/api/1/amf/'
 
-
 def resolve_url(url):
     '''Recursively resolve the given URL, following 3xx redirects. Returns
        the final URL that did not result in a redirect.'''
@@ -20,6 +19,7 @@ def resolve_url(url):
         hc = httplib.HTTPConnection(pr.hostname)
         hc.request('GET', pr.path)
         hr = hc.getresponse()
+
         
         if hr.status / 100 == 3:
             url = hr.getheader('location')

@@ -26,19 +26,32 @@ ADDON_ID = 'plugin.audio.rdio'
 addon = Addon(ADDON_ID, argv=sys.argv)
 sys.path.append(os.path.join(addon.get_path(), 'resources', 'lib'))
 
-from rdioxbmc import RdioApi
+from rdioxbmc import RdioApi, RdioAuthenticationException
 
 
 class XbmcRdioOperation:
-  
+
   def __init__(self, addon):
     self._addon = addon
     self._rdio_api = RdioApi(self._addon)
 
   def main(self):
-    self._addon.add_directory({'mode': 'albums'}, {'title': self._addon.get_string(30204)})
-    self._addon.add_directory({'mode': 'artists'}, {'title': self._addon.get_string(30203)})
-    self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
+    if self._mandatory_settings_are_valid():
+      if not self._rdio_api.authenticated():
+        try:
+          self._rdio_api.authenticate()
+        except RdioAuthenticationException, rae:
+          self._addon.show_ok_dialog([self._addon.get_string(30901), str(rae)])
+          self._addon.add_directory({'mode': 'main'}, {'title': self._addon.get_string(30206)})
+        else:
+          self._addon.add_directory({'mode': 'albums'}, {'title': self._addon.get_string(30204)})
+          self._addon.add_directory({'mode': 'artists'}, {'title': self._addon.get_string(30203)})
+          self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
+          self._addon.add_directory({'mode': 'reauthenticate'}, {'title': self._addon.get_string(30207)})
+    else:
+      self._addon.show_ok_dialog([self._addon.get_string(30900)])
+      self._addon.add_directory({'mode': 'main'}, {'title': self._addon.get_string(30206)})
+
     self._addon.add_directory({'mode': 'settings'}, {'title': self._addon.get_string(30205)})
     self._addon.end_of_directory()
 
@@ -63,7 +76,7 @@ class XbmcRdioOperation:
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
-    
+
   def artists(self):
     artists = self._rdio_api.call('getArtistsInCollection')
     for artist in artists:
@@ -75,7 +88,7 @@ class XbmcRdioOperation:
         item_type = 'music',
         img = artist['icon'],
         is_folder = True)
-      
+
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ARTIST)
     xbmcplugin.setContent(self._addon.handle, 'artists')
     self._addon.end_of_directory()
@@ -88,7 +101,7 @@ class XbmcRdioOperation:
 
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
-    
+
   def _add_playlist(self, playlists, playlist_type):
     for playlist in playlists[playlist_type]:
       playlist_title = playlist['name'] if playlist_type == 'owned' else '%s (%s)' % (playlist['name'], playlist['owner'])
@@ -117,7 +130,7 @@ class XbmcRdioOperation:
         },
         item_type = 'music',
         img = track['icon'])
-      
+
     self._addon.end_of_directory()
 
   def play(self, **params):
@@ -125,9 +138,17 @@ class XbmcRdioOperation:
     stream_url = self._rdio_api.resolve_playback_url(key)
     self._addon.resolve_url(stream_url)
 
+  def reauthenticate(self):
+    self._rdio_api.logout()
+    self.main()
+
   def settings(self):
     self._addon.show_settings()
-    
+
+  def _mandatory_settings_are_valid(self):
+    return self._addon.get_setting('username') and self._addon.get_setting('password') and self._addon.get_setting('apikey') and self._addon.get_setting('apisecret')
+
+
   def execute(self):
     start_time = time.clock()
     mode = self._addon.queries['mode']
