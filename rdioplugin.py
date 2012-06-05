@@ -111,7 +111,7 @@ class XbmcRdioOperation:
 
   def _add_playlist(self, playlists, playlist_type):
     for playlist in playlists[playlist_type]:
-      playlist_title = playlist['name'] if playlist_type == 'owned' else '%s (%s)' % (playlist['name'], playlist['owner'])
+      playlist_title = '%s (%s)' % (playlist['name'], playlist['owner'])
       self._addon.add_item({'mode': 'tracks', 'key': playlist['key']},
         {
           'title': playlist_title,
