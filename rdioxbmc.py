@@ -19,7 +19,7 @@ from urlparse import urlparse, parse_qs
 from t0mm0.common.addon import Addon
 from t0mm0.common.net import Net
 import CommonFunctions
-from rdioapi import Rdio
+from rdioapi import Rdio, RdioProtocolException
 from rdiostream import get_rtmp_info
 
 
@@ -45,7 +45,12 @@ class RdioApi:
 
   def authenticate(self):
     self._addon.log_notice("Authenticating to Rdio")
-    auth_url = self._rdio.begin_authentication('oob')
+    try:
+      auth_url = self._rdio.begin_authentication('oob')
+    except RdioProtocolException, rpe:
+      self._addon.log_error('Rdio begin_authentication failed: ' + str(rpe))
+      raise RdioAuthenticationException('Check your API credentials in plugin settings')
+
     parsed_auth_url = urlparse(auth_url)
     url_base = "%s://%s" % (parsed_auth_url.scheme, parsed_auth_url.netloc)
 
