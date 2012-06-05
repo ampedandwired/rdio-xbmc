@@ -44,7 +44,7 @@ class XbmcRdioOperation:
         try:
           self._rdio_api.authenticate()
         except RdioAuthenticationException, rae:
-          self._addon.show_error_dialog([self._addon.get_string(30901), str(rae)])
+          self._addon.show_error_dialog([self._addon.get_string(30903), str(rae)])
           self._addon.add_directory({'mode': 'main'}, {'title': self._addon.get_string(30206)})
 
       if self._rdio_api.authenticated():
@@ -53,7 +53,7 @@ class XbmcRdioOperation:
         self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
         self._addon.add_directory({'mode': 'reauthenticate'}, {'title': self._addon.get_string(30207)})
     else:
-      self._addon.show_ok_dialog([self._addon.get_string(30900)])
+      self._addon.show_ok_dialog([self._addon.get_string(30900), self._addon.get_string(30901), self._addon.get_string(30902)])
       self._addon.add_directory({'mode': 'main'}, {'title': self._addon.get_string(30206)})
 
     self._addon.add_directory({'mode': 'settings'}, {'title': self._addon.get_string(30205)})

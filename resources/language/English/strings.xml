@@ -16,6 +16,8 @@
   <string id="30206">Login</string>
   <string id="30207">Reauthenticate</string>
 
-  <string id="30900">You must supply a valid Rdio username/password and Rdio API credentials in the plugin settings before you can use this plugin</string>
-  <string id="30901">Failed to authenticate to Rdio</string>
+  <string id="30900">You must supply your Rdio username/password</string>
+  <string id="30901">and Rdio API credentials in plugin settings.</string>
+  <string id="30902">Visit http://bit.ly/rdioxbmc for help.</string>
+  <string id="30903">Failed to authenticate to Rdio</string>
 </strings>
