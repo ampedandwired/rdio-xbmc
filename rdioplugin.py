@@ -36,6 +36,9 @@ class XbmcRdioOperation:
     self._rdio_api = RdioApi(self._addon)
 
   def main(self):
+
+    # TODO should get rid of the recursive references to 'mode=main' here as they mess up the ".." nav
+
     if self._mandatory_settings_are_valid():
       if not self._rdio_api.authenticated():
         try:
@@ -43,11 +46,12 @@ class XbmcRdioOperation:
         except RdioAuthenticationException, rae:
           self._addon.show_error_dialog([self._addon.get_string(30901), str(rae)])
           self._addon.add_directory({'mode': 'main'}, {'title': self._addon.get_string(30206)})
-        else:
-          self._addon.add_directory({'mode': 'albums'}, {'title': self._addon.get_string(30204)})
-          self._addon.add_directory({'mode': 'artists'}, {'title': self._addon.get_string(30203)})
-          self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
-          self._addon.add_directory({'mode': 'reauthenticate'}, {'title': self._addon.get_string(30207)})
+
+      if self._rdio_api.authenticated():
+        self._addon.add_directory({'mode': 'albums'}, {'title': self._addon.get_string(30204)})
+        self._addon.add_directory({'mode': 'artists'}, {'title': self._addon.get_string(30203)})
+        self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
+        self._addon.add_directory({'mode': 'reauthenticate'}, {'title': self._addon.get_string(30207)})
     else:
       self._addon.show_ok_dialog([self._addon.get_string(30900)])
       self._addon.add_directory({'mode': 'main'}, {'title': self._addon.get_string(30206)})

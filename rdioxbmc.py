@@ -44,6 +44,9 @@ class RdioApi:
     addon.log_notice("Connected to Rdio with apikey " + apikey)
 
   def authenticate(self):
+
+    # TODO Should internationalize error messages in exceptions thrown here
+
     self._addon.log_notice("Authenticating to Rdio")
     try:
       auth_url = self._rdio.begin_authentication('oob')
@@ -75,7 +78,7 @@ class RdioApi:
 
     oauth_token_values = CommonFunctions.parseDOM(html, 'input', {'name': 'oauth_token'}, 'value')
     if not oauth_token_values:
-      raise RdioAuthenticationException("Login failed")
+      raise RdioAuthenticationException("Login failed, check username in plugin settings")
 
     oauth_token = oauth_token_values[0]
     verifier = CommonFunctions.parseDOM(html, 'input', {'name': 'verifier'}, 'value')[0]
