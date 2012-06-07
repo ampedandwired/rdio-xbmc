@@ -16,17 +16,19 @@
 
 import time
 from urlparse import urlparse, parse_qs
+from pyamf.remoting.client import RemotingService
 from t0mm0.common.addon import Addon
 from t0mm0.common.net import Net
 import CommonFunctions
 from rdioapi import Rdio, RdioProtocolException
-from rdiostream import get_rtmp_info
 
 
 class RdioApi:
+  _AMF_ENDPOINT = 'http://www.rdio.com/api/1/amf/'
   _STATE_FILE_NAME = 'rdio-state.json'
   _RDIO_DOMAIN = 'localhost'
   _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None}
+
 
   def __init__(self, addon):
     self._addon = addon
@@ -42,6 +44,7 @@ class RdioApi:
     self._rdio = Rdio(apikey, addon.get_setting('apisecret'), self._state['rdio_api'])
 
     addon.log_notice("Connected to Rdio with apikey " + apikey)
+
 
   def authenticate(self):
 
@@ -96,6 +99,7 @@ class RdioApi:
     self._addon.save_data(self._STATE_FILE_NAME, self._state)
     self._addon.log_notice("Successfully authenticated to Rdio")
 
+
   def logout(self):
     self._addon.log_notice("Logging out from Rdio")
     self._rdio.logout()
@@ -103,17 +107,37 @@ class RdioApi:
     self._addon.save_data(self._STATE_FILE_NAME, self._state)
     self._addon.log_notice("Successfully logged out from Rdio")
 
+
   def authenticated(self):
     return self._rdio.authenticated
 
+
   def resolve_playback_url(self, key):
-    rtmp_info = get_rtmp_info(self._RDIO_DOMAIN, self._state['playback_token'], key)
+    svc = RemotingService(self._AMF_ENDPOINT)
+    rdio_svc = svc.getService('rdio')
+
+    pi = rdio_svc.getPlaybackInfo({
+        'playbackToken': self._state['playback_token'],
+        'manualPlay': False,
+        'playerName': 'api_544189',
+        'type': 'flash',
+        'key': key})
+    if not pi:
+        raise Exception, 'Failed to get playback info'
+
+    rtmp_info = {
+      'rtmp': 'rtmpe://%s:1935%s' % (pi['streamHost'], pi['streamApp']),
+      'app': pi['streamApp'][1:],
+      'playpath': 'mp3:%s' % pi['surl']
+    }
+
     stream_url = rtmp_info['rtmp']
     for key, value in rtmp_info.items():
       stream_url += '' if key == 'rtmp' else ' %s=%s' % (key, value)
 
     self._addon.log_debug("Resolved playback URL for key '%s' to %s" % (key, stream_url))
     return stream_url
+
 
   def call(self, method, **args):
     if not self.authenticated():

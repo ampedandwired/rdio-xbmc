@@ -11,7 +11,8 @@ Provides XML support.
 #: interface. At least enough for our needs anyway.
 ETREE_MODULES = [
     'lxml.etree',
-    'xml.etree.cElementTree',
+    # cElement tree has been removed due to weird exceptions when used with the rdio xbmc addon
+    # 'xml.etree.cElementTree',
     'cElementTree',
     'xml.etree.ElementTree',
     'elementtree.ElementTree'
