@@ -109,8 +109,12 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
 
-  def playlists(self):
-    playlists = self._rdio_api.call('getPlaylists', extras = 'description')
+  def playlists(self, **params):
+    if 'key' in params:
+      playlists = self._rdio_api.call('getPlaylists', user = params['key'], extras = 'description')
+    else:
+      playlists = self._rdio_api.call('getPlaylists', extras = 'description')
+
     self._add_playlist(playlists, 'owned')
     self._add_playlist(playlists, 'collab')
     self._add_playlist(playlists, 'subscribed')
@@ -158,6 +162,7 @@ class XbmcRdioOperation:
     key = params['key']
     self._addon.add_directory({'mode': 'albums', 'key': key}, {'title': self._addon.get_string(30204)})
     self._addon.add_directory({'mode': 'artists', 'key': key}, {'title': self._addon.get_string(30203)})
+    self._addon.add_directory({'mode': 'playlists', 'key': key}, {'title': self._addon.get_string(30200)})
     self._addon.end_of_directory()
 
 
