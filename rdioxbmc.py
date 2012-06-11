@@ -27,7 +27,7 @@ class RdioApi:
   _AMF_ENDPOINT = 'http://www.rdio.com/api/1/amf/'
   _STATE_FILE_NAME = 'rdio-state.json'
   _RDIO_DOMAIN = 'localhost'
-  _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None}
+  _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None, 'current_user': None}
 
 
   def __init__(self, addon):
@@ -93,10 +93,14 @@ class RdioApi:
     self._rdio.complete_authentication(verifier)
 
     self._addon.log_notice("Getting playback token")
-    self._state['playback_token'] = self.call('getPlaybackToken', domain=self._RDIO_DOMAIN)
+    self._state['playback_token'] = self._rdio.call('getPlaybackToken', domain=self._RDIO_DOMAIN)
     self._addon.log_notice("Got playback token: " + self._state['playback_token'])
 
-    self._addon.save_data(self._STATE_FILE_NAME, self._state)
+    self._addon.log_notice("Getting current user")
+    self._state['current_user'] = self._rdio.call('currentUser')['key']
+    self._addon.log_notice("Current user key is " + self._state['current_user'])
+
+    self._save_state()
     self._addon.log_notice("Successfully authenticated to Rdio")
 
 
@@ -104,12 +108,12 @@ class RdioApi:
     self._addon.log_notice("Logging out from Rdio")
     self._rdio.logout()
     self._state = self._INITIAL_STATE
-    self._addon.save_data(self._STATE_FILE_NAME, self._state)
+    self._save_state()
     self._addon.log_notice("Successfully logged out from Rdio")
 
 
   def authenticated(self):
-    return self._rdio.authenticated
+    return self._rdio.authenticated and self._state['current_user'] and self._state['playback_token']
 
 
   def resolve_playback_url(self, key):
@@ -150,6 +154,10 @@ class RdioApi:
     time_ms = (time.clock() - start_time) * 1000
     self._addon.log_debug("Executed Rdio API call %s in %i ms" % (method, time_ms))
     return result
+
+
+  def _save_state(self):
+    self._addon.save_data(self._STATE_FILE_NAME, self._state)
 
 
 
