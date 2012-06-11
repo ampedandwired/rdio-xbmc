@@ -51,6 +51,7 @@ class XbmcRdioOperation:
         self._addon.add_directory({'mode': 'albums'}, {'title': self._addon.get_string(30204)})
         self._addon.add_directory({'mode': 'artists'}, {'title': self._addon.get_string(30203)})
         self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
+        self._addon.add_directory({'mode': 'following'}, {'title': self._addon.get_string(30208)})
         self._addon.add_directory({'mode': 'reauthenticate'}, {'title': self._addon.get_string(30207)})
     else:
       self._addon.show_ok_dialog([self._addon.get_string(30900), self._addon.get_string(30901), self._addon.get_string(30902)])
@@ -60,8 +61,12 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
 
-  def albums(self):
-    albums = self._rdio_api.call('getAlbumsInCollection')
+  def albums(self, **params):
+    if 'key' in params:
+      albums = self._rdio_api.call('getAlbumsInCollection', user = params['key'])
+    else:
+      albums = self._rdio_api.call('getAlbumsInCollection')
+
     for album in albums:
       self._addon.add_item({'mode': 'tracks', 'key': album['key']},
         {
@@ -122,6 +127,33 @@ class XbmcRdioOperation:
         img = playlist['icon'],
         total_items = playlist['length'],
         is_folder = True)
+
+
+  def following(self):
+    following = self._rdio_api.call('userFollowing', user = self._rdio_api.current_user())
+    for followed_person in following:
+      name = followed_person['firstName']
+      if followed_person['lastName']:
+        name += ' ' + followed_person['lastName']
+
+      self._addon.add_item({'mode': 'person', 'key': followed_person['key']},
+        {
+          'title': name,
+          'artist': name
+        },
+        item_type = 'music',
+        img = followed_person['icon'],
+        is_folder = True)
+
+    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ARTIST)
+    xbmcplugin.setContent(self._addon.handle, 'artists')
+    self._addon.end_of_directory()
+
+
+  def person(self, **params):
+    key = params['key']
+    self._addon.add_directory({'mode': 'albums', 'key': key}, {'title': self._addon.get_string(30204)})
+    self._addon.end_of_directory()
 
 
   def tracks(self, **params):

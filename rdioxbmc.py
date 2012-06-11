@@ -142,6 +142,8 @@ class RdioApi:
     self._addon.log_debug("Resolved playback URL for key '%s' to %s" % (key, stream_url))
     return stream_url
 
+  def current_user(self):
+    return self._state['current_user']
 
   def call(self, method, **args):
     if not self.authenticated():
