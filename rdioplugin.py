@@ -88,8 +88,12 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
 
-  def artists(self):
-    artists = self._rdio_api.call('getArtistsInCollection')
+  def artists(self, **params):
+    if 'key' in params:
+      artists = self._rdio_api.call('getArtistsInCollection', user = params['key'])
+    else:
+      artists = self._rdio_api.call('getArtistsInCollection')
+
     for artist in artists:
       self._addon.add_item({'mode': 'tracks', 'key': artist['key']},
         {
@@ -153,6 +157,7 @@ class XbmcRdioOperation:
   def person(self, **params):
     key = params['key']
     self._addon.add_directory({'mode': 'albums', 'key': key}, {'title': self._addon.get_string(30204)})
+    self._addon.add_directory({'mode': 'artists', 'key': key}, {'title': self._addon.get_string(30203)})
     self._addon.end_of_directory()
 
 
