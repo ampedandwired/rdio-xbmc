@@ -1,6 +1,6 @@
-XBMC for Rdio
+Rdio for XBMC
 =============
 
-This plugin allows you to play your Rdio collections and playlists through XBMC.
+Rdio for XBMC is an XBMC add-on that allows you to play your [Rdio](http://www.rdio.com) music collection through the [XBMC](http://xbmc.org) media centre.
 
-It is not yet functional, but is under active development and should be ready for alpha testing in a week or two.
+For information on installing and using this add-on, please visit the [rdio-xbmc wiki](https://github.com/ampedandwired/rdio-xbmc/wiki).
