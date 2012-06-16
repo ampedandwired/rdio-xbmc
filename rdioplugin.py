@@ -138,6 +138,7 @@ class XbmcRdioOperation:
   def artist(self, **params):
     key = params['key']
     self._addon.add_directory({'mode': 'albums_for_artist', 'key': key}, {'title': self._addon.get_string(30211)})
+    self._addon.add_directory({'mode': 'tracks_for_artist', 'key': key}, {'title': self._addon.get_string(30212)})
     self._addon.end_of_directory()
 
 
@@ -221,20 +222,28 @@ class XbmcRdioOperation:
 
   def tracks(self, **params):
     key = params['key']
-    track_container = self._rdio_api.call('get', keys = key, extras = 'tracks')[key]
-    for track in track_container['tracks']:
+    track_container = self._rdio_api.call('get', keys = key, extras = 'tracks,playCount')[key]
+    self._add_tracks(track_container['tracks'])
+    self._addon.end_of_directory()
+
+  def tracks_for_artist(self, **params):
+    tracks = self._rdio_api.call('getTracksForArtist', artist = params['key'], extras = 'playCount', start = 0, count = 20)
+    self._add_tracks(tracks)
+    self._addon.end_of_directory()
+
+  def _add_tracks(self, tracks):
+    for track in tracks:
       self._addon.add_item({'mode': 'play', 'key': track['key']},
         {
           'title': track['name'],
           'artist': track['artist'],
           'album': track['album'],
           'duration': track['duration'],
-          'tracknumber': track['trackNum']
+          'tracknumber': track['trackNum'],
+          'playCount': track['playCount']
         },
         item_type = 'music',
         img = track['icon'])
-
-    self._addon.end_of_directory()
 
 
   def play(self, **params):
