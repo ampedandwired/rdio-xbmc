@@ -208,7 +208,7 @@ class XbmcRdioOperation:
 
   def user(self, **params):
     key = params['key']
-    self._addon.add_directory({'mode': 'albums', 'key': key}, {'title': self._addon.get_string(30204)})
+    self._addon.add_directory({'mode': 'albums_in_collection', 'key': key}, {'title': self._addon.get_string(30204)})
     self._addon.add_directory({'mode': 'artists_in_collection', 'key': key}, {'title': self._addon.get_string(30203)})
     self._addon.add_directory({'mode': 'playlists', 'key': key}, {'title': self._addon.get_string(30200)})
     self._addon.end_of_directory()
@@ -241,6 +241,9 @@ class XbmcRdioOperation:
 
   def _add_tracks(self, tracks):
     for track in tracks:
+      if not 'playCount' in track:
+        track['playCount'] = 0
+
       self._addon.add_item({'mode': 'play', 'key': track['key']},
         {
           'title': track['name'],
