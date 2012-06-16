@@ -113,7 +113,7 @@ class RdioApi:
 
 
   def authenticated(self):
-    return self._rdio.authenticated and self._state['current_user'] and self._state['playback_token']
+    return self._rdio.authenticated and 'current_user' in self._state and self._state['current_user'] and self._state['playback_token']
 
 
   def resolve_playback_url(self, key):
