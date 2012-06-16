@@ -35,6 +35,7 @@ class XbmcRdioOperation:
   _TYPE_PLAYLIST = 'p'
   _TYPE_USER = 's'
   _TYPE_ARTIST_IN_COLLECTION = 'rl'
+  _PAGE_SIZE_ALBUMS = 100
 
   def __init__(self, addon):
     self._addon = addon
@@ -83,12 +84,20 @@ class XbmcRdioOperation:
 
 
   def albums_in_collection(self, **params):
+    start = int(params['start']) if 'start' in params else 0
     if 'key' in params:
-      albums = self._rdio_api.call('getAlbumsInCollection', user = params['key'], extras = 'playCount')
+      albums = self._rdio_api.call('getAlbumsInCollection', user = params['key'], extras = 'playCount', count = self._PAGE_SIZE_ALBUMS, start = start)
     else:
-      albums = self._rdio_api.call('getAlbumsInCollection', extras = 'playCount')
+      albums = self._rdio_api.call('getAlbumsInCollection', extras = 'playCount', count = self._PAGE_SIZE_ALBUMS, start = start)
 
     self._add_albums(albums)
+
+    # Add a "More..." menu option if there are too many albums
+    if len(albums) == self._PAGE_SIZE_ALBUMS:
+      queries = params.copy()
+      queries['start'] = start + self._PAGE_SIZE_ALBUMS
+      self._addon.add_item(queries, {'title': 'More...'}, is_folder = True)
+
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ARTIST)
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
