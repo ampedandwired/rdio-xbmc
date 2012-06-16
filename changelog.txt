@@ -1,8 +1,8 @@
 [B]Version 1.1.0[/B]
 - View people in your network and play their albums, artists and playlists
 - Search for album/artist
-- Browse artist: top albums, top tracks, similar artists
-- Increase timeout for Rdio API calls (decreases probability of failure when retrieving large collections)
+- Browse artist's top albums, top tracks and similar artists
+- Large album collections are paged to prevent timeouts
 
 [B]Version 1.0.0[/B]
 - Basic authentication and playback
