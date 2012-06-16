@@ -30,6 +30,11 @@ from rdioxbmc import RdioApi, RdioAuthenticationException
 
 
 class XbmcRdioOperation:
+  _TYPE_ALBUM = 'a'
+  _TYPE_ARTIST = 'r'
+  _TYPE_PLAYLIST = 'p'
+  _TYPE_USER = 's'
+  _TYPE_ARTIST_IN_COLLECTION = 'rl'
 
   def __init__(self, addon):
     self._addon = addon
@@ -48,10 +53,11 @@ class XbmcRdioOperation:
           self._addon.add_directory({'mode': 'main'}, {'title': self._addon.get_string(30206)})
 
       if self._rdio_api.authenticated():
-        self._addon.add_directory({'mode': 'albums'}, {'title': self._addon.get_string(30204)})
-        self._addon.add_directory({'mode': 'artists'}, {'title': self._addon.get_string(30203)})
+        self._addon.add_directory({'mode': 'albums_in_collection'}, {'title': self._addon.get_string(30204)})
+        self._addon.add_directory({'mode': 'artists_in_collection'}, {'title': self._addon.get_string(30203)})
         self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
         self._addon.add_directory({'mode': 'following'}, {'title': self._addon.get_string(30208)})
+        self._addon.add_directory({'mode': 'search'}, {'title': self._addon.get_string(30209)})
         self._addon.add_directory({'mode': 'reauthenticate'}, {'title': self._addon.get_string(30207)})
     else:
       self._addon.show_ok_dialog([self._addon.get_string(30900), self._addon.get_string(30901), self._addon.get_string(30902)])
@@ -61,52 +67,93 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
 
-  def albums(self, **params):
+  def search(self):
+    kb = xbmc.Keyboard(heading = self._addon.get_string(30210))
+    kb.doModal()
+    if kb.isConfirmed():
+      query = kb.getText()
+      search_results = self._rdio_api.call('search', query = query, types = 'Artist,Album', extras = 'playCount')
+      for result in search_results['results']:
+        if result['type'] == self._TYPE_ARTIST:
+          self._add_artist(result)
+        elif result['type'] == self._TYPE_ALBUM:
+          self._add_album(result)
+
+    self._addon.end_of_directory()
+
+
+  def albums_in_collection(self, **params):
     if 'key' in params:
-      albums = self._rdio_api.call('getAlbumsInCollection', user = params['key'])
+      albums = self._rdio_api.call('getAlbumsInCollection', user = params['key'], extras = 'playCount')
     else:
-      albums = self._rdio_api.call('getAlbumsInCollection')
+      albums = self._rdio_api.call('getAlbumsInCollection', extras = 'playCount')
 
-    for album in albums:
-      self._addon.add_item({'mode': 'tracks', 'key': album['key']},
-        {
-          'title': '%s (%s)' % (album['name'], album['artist']),
-          'album': album['name'],
-          'artist': album['artist'],
-          'date': rdiocommon.iso_date_to_xbmc_date(album['releaseDate']),
-          'duration': album['duration']
-        },
-        item_type = 'music',
-        img = album['icon'],
-        total_items = album['length'],
-        is_folder = True)
-
+    self._add_albums(albums)
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ARTIST)
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
 
+  def albums_for_artist(self, **params):
+    albums = self._rdio_api.call('getAlbumsForArtist', artist = params['key'], extras = 'playCount', start = 0, count = 9)
+    self._add_albums(albums)
+    xbmcplugin.setContent(self._addon.handle, 'albums')
+    self._addon.end_of_directory()
 
-  def artists(self, **params):
+  def _add_albums(self, albums):
+    for album in albums:
+      self._add_album(album)
+
+  def _add_album(self, album):
+    self._addon.add_item({'mode': 'tracks', 'key': album['key']},
+    {
+      'title': '%s (%s)' % (album['name'], album['artist']),
+      'album': album['name'],
+      'artist': album['artist'],
+      'date': rdiocommon.iso_date_to_xbmc_date(album['releaseDate']),
+      'duration': album['duration'],
+      'playCount': album['playCount']
+    },
+    item_type = 'music',
+    img = album['icon'],
+    total_items = album['length'],
+    is_folder = True)
+
+
+  def artists_in_collection(self, **params):
     if 'key' in params:
       artists = self._rdio_api.call('getArtistsInCollection', user = params['key'])
     else:
       artists = self._rdio_api.call('getArtistsInCollection')
 
     for artist in artists:
-      self._addon.add_item({'mode': 'tracks', 'key': artist['key']},
-        {
-          'title': artist['name'],
-          'artist': artist['name']
-        },
-        item_type = 'music',
-        img = artist['icon'],
-        is_folder = True)
+      self._add_artist(artist)
 
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ARTIST)
     xbmcplugin.setContent(self._addon.handle, 'artists')
     self._addon.end_of_directory()
+
+
+  def artist(self, **params):
+    key = params['key']
+    self._addon.add_directory({'mode': 'albums_for_artist', 'key': key}, {'title': self._addon.get_string(30211)})
+    self._addon.end_of_directory()
+
+
+  def _add_artist(self, artist):
+    mode = 'artist'
+    if artist['type'] == self._TYPE_ARTIST_IN_COLLECTION:
+      mode = 'tracks'
+
+    self._addon.add_item({'mode': mode, 'key': artist['key']},
+      {
+        'title': artist['name'],
+        'artist': artist['name']
+      },
+      item_type = 'music',
+      img = artist['icon'],
+      is_folder = True)
 
 
   def playlists(self, **params):
@@ -115,55 +162,61 @@ class XbmcRdioOperation:
     else:
       playlists = self._rdio_api.call('getPlaylists', extras = 'description')
 
-    self._add_playlist(playlists, 'owned')
-    self._add_playlist(playlists, 'collab')
-    self._add_playlist(playlists, 'subscribed')
+    self._add_playlists(playlists['owned'])
+    self._add_playlists(playlists['collab'])
+    self._add_playlists(playlists['subscribed'])
 
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
 
-  def _add_playlist(self, playlists, playlist_type):
-    for playlist in playlists[playlist_type]:
-      playlist_title = '%s (%s)' % (playlist['name'], playlist['owner'])
-      self._addon.add_item({'mode': 'tracks', 'key': playlist['key']},
-        {
-          'title': playlist_title,
-          'album': playlist['name'],
-          'artist': playlist['owner']
-        },
-        item_type = 'music',
-        img = playlist['icon'],
-        total_items = playlist['length'],
-        is_folder = True)
+  def _add_playlists(self, playlists):
+    for playlist in playlists:
+      self._add_playlist(playlist)
+
+  def _add_playlist(self, playlist):
+    playlist_title = '%s (%s)' % (playlist['name'], playlist['owner'])
+    self._addon.add_item({'mode': 'tracks', 'key': playlist['key']},
+      {
+        'title': playlist_title,
+        'album': playlist['name'],
+        'artist': playlist['owner']
+      },
+      item_type = 'music',
+      img = playlist['icon'],
+      total_items = playlist['length'],
+      is_folder = True)
 
 
   def following(self):
-    following = self._rdio_api.call('userFollowing', user = self._rdio_api.current_user())
-    for followed_person in following:
-      name = followed_person['firstName']
-      if followed_person['lastName']:
-        name += ' ' + followed_person['lastName']
-
-      self._addon.add_item({'mode': 'person', 'key': followed_person['key']},
-        {
-          'title': name,
-          'artist': name
-        },
-        item_type = 'music',
-        img = followed_person['icon'],
-        is_folder = True)
+    followed_users = self._rdio_api.call('userFollowing', user = self._rdio_api.current_user())
+    for followed_user in followed_users:
+      self._add_user(followed_user)
 
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ARTIST)
     xbmcplugin.setContent(self._addon.handle, 'artists')
     self._addon.end_of_directory()
 
 
-  def person(self, **params):
+  def user(self, **params):
     key = params['key']
     self._addon.add_directory({'mode': 'albums', 'key': key}, {'title': self._addon.get_string(30204)})
-    self._addon.add_directory({'mode': 'artists', 'key': key}, {'title': self._addon.get_string(30203)})
+    self._addon.add_directory({'mode': 'artists_in_collection', 'key': key}, {'title': self._addon.get_string(30203)})
     self._addon.add_directory({'mode': 'playlists', 'key': key}, {'title': self._addon.get_string(30200)})
     self._addon.end_of_directory()
+
+  def _add_user(self, user):
+    name = user['firstName']
+    if user['lastName']:
+      name += ' ' + user['lastName']
+
+    self._addon.add_item({'mode': 'user', 'key': user['key']},
+      {
+        'title': name,
+        'artist': name
+      },
+      item_type = 'music',
+      img = user['icon'],
+      is_folder = True)
 
 
   def tracks(self, **params):

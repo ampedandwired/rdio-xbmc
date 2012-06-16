@@ -16,6 +16,9 @@
   <string id="30206">Login</string>
   <string id="30207">Reauthenticate</string>
   <string id="30208">Your Network</string>
+  <string id="30209">Search Album/Artist...</string>
+  <string id="30210">Search</string>
+  <string id="30211">Top Albums</string>
 
   <string id="30900">You must supply your Rdio username/password</string>
   <string id="30901">and Rdio API credentials in plugin settings.</string>
