@@ -139,8 +139,16 @@ class XbmcRdioOperation:
     key = params['key']
     self._addon.add_directory({'mode': 'albums_for_artist', 'key': key}, {'title': self._addon.get_string(30211)})
     self._addon.add_directory({'mode': 'tracks_for_artist', 'key': key}, {'title': self._addon.get_string(30212)})
+    self._addon.add_directory({'mode': 'related_artists', 'key': key}, {'title': self._addon.get_string(30213)})
     self._addon.end_of_directory()
 
+  def related_artists(self, **params):
+    artists = self._rdio_api.call('getRelatedArtists', artist = params['key'])
+    for artist in artists:
+      self._add_artist(artist)
+
+    xbmcplugin.setContent(self._addon.handle, 'artists')
+    self._addon.end_of_directory()
 
   def _add_artist(self, artist):
     mode = 'artist'
