@@ -57,6 +57,7 @@ class XbmcRdioOperation:
         self._addon.add_directory({'mode': 'albums_in_collection'}, {'title': self._addon.get_string(30204)})
         self._addon.add_directory({'mode': 'artists_in_collection'}, {'title': self._addon.get_string(30203)})
         self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
+        self._addon.add_directory({'mode': 'new_releases'}, {'title': self._addon.get_string(30215)})
         self._addon.add_directory({'mode': 'following'}, {'title': self._addon.get_string(30208)})
         self._addon.add_directory({'mode': 'search'}, {'title': self._addon.get_string(30209)})
         self._addon.add_directory({'mode': 'reauthenticate'}, {'title': self._addon.get_string(30207)})
@@ -106,6 +107,12 @@ class XbmcRdioOperation:
 
   def albums_for_artist(self, **params):
     albums = self._rdio_api.call('getAlbumsForArtist', artist = params['key'], extras = 'playCount', start = 0, count = 9)
+    self._add_albums(albums)
+    xbmcplugin.setContent(self._addon.handle, 'albums')
+    self._addon.end_of_directory()
+
+  def new_releases(self):
+    albums = self._rdio_api.call('getNewReleases', extras = 'playCount')
     self._add_albums(albums)
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()

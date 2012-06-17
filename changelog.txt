@@ -1,4 +1,5 @@
 [B]Version 1.2.0[/B]
+- Browse new release albums
 - When selecting artist in your collection, show albums from that artist in your collection rather than tracks (only if there is more than one album)
 
 [B]Version 1.1.1[/B]

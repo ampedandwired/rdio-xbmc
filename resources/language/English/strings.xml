@@ -22,6 +22,7 @@
   <string id="30212">Top Tracks</string>
   <string id="30213">Related Artists</string>
   <string id="30214">More...</string>
+  <string id="30215">New Releases</string>
 
   <string id="30900">You must supply your Rdio username/password</string>
   <string id="30901">and Rdio API credentials in plugin settings.</string>
