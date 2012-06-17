@@ -286,6 +286,7 @@ class XbmcRdioOperation:
   def tracks_for_artist(self, **params):
     tracks = self._rdio_api.call('getTracksForArtist', artist = params['key'], extras = 'playCount', start = 0, count = 20)
     self._add_tracks(tracks)
+    self._addon.add_directory({'mode': 'artist', 'key': params['key']}, {'title': self._addon.get_string(30217)})
     self._addon.end_of_directory()
 
   def _add_tracks(self, tracks):
