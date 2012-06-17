@@ -178,6 +178,7 @@ class XbmcRdioOperation:
       self._add_tracks(album['tracks'])
     else:
       self._add_albums(albums)
+      self._addon.add_directory({'mode': 'artist', 'key': params['artist']}, {'title': self._addon.get_string(30217)})
       xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
       xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
       xbmcplugin.setContent(self._addon.handle, 'albums')

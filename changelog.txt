@@ -1,6 +1,7 @@
 [B]Version 1.2.0[/B]
 - Browse new release albums
 - Browse heavy rotation albums in your network
+- Navigate from artists in your collection to top albums, top tracks and similar artists for that artist
 - When selecting artist in your collection, show albums from that artist in your collection rather than tracks (only if there is more than one album)
 
 [B]Version 1.1.1[/B]
