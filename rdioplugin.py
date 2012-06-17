@@ -96,7 +96,7 @@ class XbmcRdioOperation:
     if len(albums) == self._PAGE_SIZE_ALBUMS:
       queries = params.copy()
       queries['start'] = start + self._PAGE_SIZE_ALBUMS
-      self._addon.add_item(queries, {'title': 'More...'}, is_folder = True)
+      self._addon.add_item(queries, {'title': self._addon.get_string(30214)}, is_folder = True)
 
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ARTIST)
