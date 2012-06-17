@@ -130,6 +130,13 @@ class XbmcRdioOperation:
     is_folder = True)
 
 
+  def artist(self, **params):
+    key = params['key']
+    self._addon.add_directory({'mode': 'albums_for_artist', 'key': key}, {'title': self._addon.get_string(30211)})
+    self._addon.add_directory({'mode': 'tracks_for_artist', 'key': key}, {'title': self._addon.get_string(30212)})
+    self._addon.add_directory({'mode': 'related_artists', 'key': key}, {'title': self._addon.get_string(30213)})
+    self._addon.end_of_directory()
+
   def artists_in_collection(self, **params):
     if 'key' in params:
       artists = self._rdio_api.call('getArtistsInCollection', user = params['key'])
@@ -143,12 +150,16 @@ class XbmcRdioOperation:
     xbmcplugin.setContent(self._addon.handle, 'artists')
     self._addon.end_of_directory()
 
+  def albums_for_artist_in_collection(self, **params):
+    if 'key' in params:
+      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], user = params['key'], extras = 'playCount')
+    else:
+      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], extras = 'playCount')
 
-  def artist(self, **params):
-    key = params['key']
-    self._addon.add_directory({'mode': 'albums_for_artist', 'key': key}, {'title': self._addon.get_string(30211)})
-    self._addon.add_directory({'mode': 'tracks_for_artist', 'key': key}, {'title': self._addon.get_string(30212)})
-    self._addon.add_directory({'mode': 'related_artists', 'key': key}, {'title': self._addon.get_string(30213)})
+    self._add_albums(albums)
+    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
+    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
+    xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
 
   def related_artists(self, **params):
@@ -160,11 +171,13 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
   def _add_artist(self, artist):
-    mode = 'artist'
+    queries = {'mode': 'artist', 'key': artist['key']}
     if artist['type'] == self._TYPE_ARTIST_IN_COLLECTION:
-      mode = 'tracks'
+      queries['mode'] = 'albums_for_artist_in_collection'
+      queries['key'] = artist['userKey']
+      queries['artist'] = artist['artistKey']
 
-    self._addon.add_item({'mode': mode, 'key': artist['key']},
+    self._addon.add_item(queries,
       {
         'title': artist['name'],
         'artist': artist['name']
