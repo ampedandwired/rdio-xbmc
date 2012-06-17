@@ -310,7 +310,8 @@ class XbmcRdioOperation:
   def play(self, **params):
     key = params['key']
     stream_url = self._rdio_api.resolve_playback_url(key)
-    self._addon.resolve_url(stream_url)
+    if stream_url:
+      self._addon.resolve_url(stream_url)
 
 
   def reauthenticate(self):

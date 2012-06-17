@@ -129,6 +129,10 @@ class RdioApi:
     if not pi:
         raise Exception, 'Failed to get playback info'
 
+    if not pi['canStream']:
+      self._addon.log_notice('Streaming key %s is not allowed' % key)
+      return None
+
     rtmp_info = {
       'rtmp': 'rtmpe://%s:1935%s' % (pi['streamHost'], pi['streamApp']),
       'app': pi['streamApp'][1:],
