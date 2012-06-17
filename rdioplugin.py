@@ -156,10 +156,15 @@ class XbmcRdioOperation:
     else:
       albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], extras = 'playCount')
 
-    self._add_albums(albums)
-    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
-    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
-    xbmcplugin.setContent(self._addon.handle, 'albums')
+    if len(albums) == 1:
+      album = albums[0]
+      self._add_tracks(album['tracks'])
+    else:
+      self._add_albums(albums)
+      xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
+      xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
+      xbmcplugin.setContent(self._addon.handle, 'albums')
+
     self._addon.end_of_directory()
 
   def related_artists(self, **params):
