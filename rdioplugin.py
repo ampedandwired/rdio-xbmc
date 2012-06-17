@@ -34,6 +34,7 @@ class XbmcRdioOperation:
   _TYPE_ARTIST = 'r'
   _TYPE_PLAYLIST = 'p'
   _TYPE_USER = 's'
+  _TYPE_ALBUM_IN_COLLECTION = 'al'
   _TYPE_ARTIST_IN_COLLECTION = 'rl'
 
   _PAGE_SIZE_ALBUMS = 100
@@ -178,11 +179,11 @@ class XbmcRdioOperation:
       self._add_tracks(album['tracks'])
     else:
       self._add_albums(albums)
-      self._addon.add_directory({'mode': 'artist', 'key': params['artist']}, {'title': self._addon.get_string(30217)})
       xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
       xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
       xbmcplugin.setContent(self._addon.handle, 'albums')
 
+    self._addon.add_directory({'mode': 'artist', 'key': params['artist']}, {'title': self._addon.get_string(30217)})
     self._addon.end_of_directory()
 
   def related_artists(self, **params):
@@ -277,6 +278,9 @@ class XbmcRdioOperation:
     key = params['key']
     track_container = self._rdio_api.call('get', keys = key, extras = 'tracks,playCount')[key]
     self._add_tracks(track_container['tracks'])
+    if track_container['type'][0] == self._TYPE_ALBUM or track_container['type'][0] == self._TYPE_ARTIST:
+      self._addon.add_directory({'mode': 'artist', 'key': track_container['artistKey']}, {'title': self._addon.get_string(30217)})
+
     self._addon.end_of_directory()
 
   def tracks_for_artist(self, **params):
