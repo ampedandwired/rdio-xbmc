@@ -35,7 +35,9 @@ class XbmcRdioOperation:
   _TYPE_PLAYLIST = 'p'
   _TYPE_USER = 's'
   _TYPE_ARTIST_IN_COLLECTION = 'rl'
+
   _PAGE_SIZE_ALBUMS = 100
+  _PAGE_SIZE_HEAVY_ROTATION = 14
 
   def __init__(self, addon):
     self._addon = addon
@@ -58,6 +60,7 @@ class XbmcRdioOperation:
         self._addon.add_directory({'mode': 'artists_in_collection'}, {'title': self._addon.get_string(30203)})
         self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
         self._addon.add_directory({'mode': 'new_releases'}, {'title': self._addon.get_string(30215)})
+        self._addon.add_directory({'mode': 'heavy_rotation'}, {'title': self._addon.get_string(30216)})
         self._addon.add_directory({'mode': 'following'}, {'title': self._addon.get_string(30208)})
         self._addon.add_directory({'mode': 'search'}, {'title': self._addon.get_string(30209)})
         self._addon.add_directory({'mode': 'reauthenticate'}, {'title': self._addon.get_string(30207)})
@@ -113,6 +116,13 @@ class XbmcRdioOperation:
 
   def new_releases(self):
     albums = self._rdio_api.call('getNewReleases', extras = 'playCount')
+    self._add_albums(albums)
+    xbmcplugin.setContent(self._addon.handle, 'albums')
+    self._addon.end_of_directory()
+
+  def heavy_rotation(self):
+    albums = self._rdio_api.call('getHeavyRotation', user = self._rdio_api.current_user(),
+      friends = True, type = 'albums', start = 0, count = self._PAGE_SIZE_HEAVY_ROTATION, extras = 'playCount')
     self._add_albums(albums)
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
