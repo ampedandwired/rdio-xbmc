@@ -26,6 +26,8 @@
   <string id="30216">Heavy Rotation</string>
   <string id="30217">More from this artist...</string>
   <string id="30218">Search Playlists...</string>
+  <string id="30219">Add to Rdio Collection</string>
+  <string id="30220">Remove from Rdio Collection</string>
 
   <string id="30900">You must supply your Rdio username/password</string>
   <string id="30901">and Rdio API credentials in plugin settings.</string>

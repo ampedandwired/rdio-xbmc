@@ -18,9 +18,11 @@ import sys
 import os
 import inspect
 import time
+import urllib
 import xbmcplugin
 from t0mm0.common.addon import Addon
 import rdiocommon
+
 
 ADDON_ID = 'plugin.audio.rdio'
 addon = Addon(ADDON_ID, argv=sys.argv)
@@ -178,9 +180,9 @@ class XbmcRdioOperation:
 
   def albums_for_artist_in_collection(self, **params):
     if 'key' in params:
-      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], user = params['key'], extras = 'playCount')
+      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], user = params['key'], extras = 'playCount,Track.isInCollection')
     else:
-      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], extras = 'playCount')
+      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], extras = 'playCount,Track.isInCollection')
 
     if len(albums) == 1:
       album = albums[0]
@@ -284,21 +286,29 @@ class XbmcRdioOperation:
 
   def tracks(self, **params):
     key = params['key']
-    track_container = self._rdio_api.call('get', keys = key, extras = 'tracks,playCount')[key]
+    track_container = self._rdio_api.call('get', keys = key, extras = 'tracks,Track.isInCollection,playCount')[key]
     self._add_tracks(track_container['tracks'])
+
+    # Add "More from this artist" link if container is an album or artist
     if track_container['type'][0] == self._TYPE_ALBUM or track_container['type'][0] == self._TYPE_ARTIST:
       self._addon.add_directory({'mode': 'artist', 'key': track_container['artistKey']}, {'title': self._addon.get_string(30217)})
 
     self._addon.end_of_directory()
 
   def tracks_for_artist(self, **params):
-    tracks = self._rdio_api.call('getTracksForArtist', artist = params['key'], extras = 'playCount', start = 0, count = 20)
+    tracks = self._rdio_api.call('getTracksForArtist', artist = params['key'], extras = 'playCount,isInCollection', start = 0, count = 20)
     self._add_tracks(tracks)
     self._addon.add_directory({'mode': 'artist', 'key': params['key']}, {'title': self._addon.get_string(30217)})
     self._addon.end_of_directory()
 
   def _add_tracks(self, tracks):
     for track in tracks:
+
+      if track['isInCollection']:
+        collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30220), mode = 'remove_from_collection', key = track['key'])
+      else:
+        collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30219), mode = 'add_to_collection', key = track['key'])
+
       if not 'playCount' in track:
         track['playCount'] = 0
 
@@ -312,6 +322,7 @@ class XbmcRdioOperation:
           'playCount': track['playCount']
         },
         item_type = 'music',
+        contextmenu_items = [collection_context_menu_item],
         img = track['icon'])
 
 
@@ -320,6 +331,13 @@ class XbmcRdioOperation:
     stream_url = self._rdio_api.resolve_playback_url(key)
     if stream_url:
       self._addon.resolve_url(stream_url)
+
+
+  def add_to_collection(self, **params):
+    self._rdio_api.call('addToCollection', keys = params['key'])
+
+  def remove_from_collection(self, **params):
+    self._rdio_api.call('removeFromCollection', keys = params['key'])
 
 
   def reauthenticate(self):
@@ -332,6 +350,12 @@ class XbmcRdioOperation:
 
   def _mandatory_settings_are_valid(self):
     return self._addon.get_setting('username') and self._addon.get_setting('password') and self._addon.get_setting('apikey') and self._addon.get_setting('apisecret')
+
+
+  def _build_context_menu_item(self, menu_text, **queries):
+    url = 'special://home/addons/%s/%s' % (ADDON_ID, os.path.basename(__file__))
+    params = str(self._addon.handle) + ",?" + urllib.urlencode(queries)
+    return (menu_text, 'XBMC.RunScript(%s, %s)' % (url, params))
 
 
   def execute(self):
