@@ -119,9 +119,26 @@ class XbmcRdioOperation:
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
 
-  def albums_for_artist(self, **params):
-    albums = self._rdio_api.call('getAlbumsForArtist', artist = params['key'], extras = 'playCount', start = 0, count = 9)
+  def all_albums_for_artist(self, **params):
+    self._albums_for_artist(**params)
+
+  def top_albums_for_artist(self, **params):
+    self._albums_for_artist(True, **params)
+
+  def _albums_for_artist(self, top_only = False, **params):
+    if top_only:
+      albums = self._rdio_api.call('getAlbumsForArtist', artist = params['key'], extras = 'playCount', start = 0, count = 9)
+    else:
+      albums = self._rdio_api.call('getAlbumsForArtist', artist = params['key'], extras = 'playCount')
+
     self._add_albums(albums)
+
+    if not top_only:
+      xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
+      xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
+    else:
+      self._addon.add_directory({'mode': 'all_albums_for_artist', 'key': params['key']}, {'title': self._addon.get_string(30222)})
+
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
 
@@ -143,6 +160,9 @@ class XbmcRdioOperation:
       self._add_album(album)
 
   def _add_album(self, album):
+    #add_collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30219), mode = 'add_to_collection', key = album['albumKey'])
+    #remove_collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30220), mode = 'remove_from_collection', key = album['albumKey'])
+
     self._addon.add_item({'mode': 'tracks', 'key': album['key']},
     {
       'title': '%s (%s)' % (album['name'], album['artist']),
@@ -153,6 +173,7 @@ class XbmcRdioOperation:
       'playCount': album['playCount']
     },
     item_type = 'music',
+    #contextmenu_items = [add_collection_context_menu_item, remove_collection_context_menu_item],
     img = album['icon'],
     total_items = album['length'],
     is_folder = True)
@@ -160,8 +181,9 @@ class XbmcRdioOperation:
 
   def artist(self, **params):
     key = params['key']
-    self._addon.add_directory({'mode': 'albums_for_artist', 'key': key}, {'title': self._addon.get_string(30211)})
+    self._addon.add_directory({'mode': 'top_albums_for_artist', 'key': key}, {'title': self._addon.get_string(30211)})
     self._addon.add_directory({'mode': 'tracks_for_artist', 'key': key}, {'title': self._addon.get_string(30212)})
+    self._addon.add_directory({'mode': 'all_albums_for_artist', 'key': key}, {'title': self._addon.get_string(30221)})
     self._addon.add_directory({'mode': 'related_artists', 'key': key}, {'title': self._addon.get_string(30213)})
     self._addon.end_of_directory()
 
