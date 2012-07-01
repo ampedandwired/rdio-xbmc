@@ -63,7 +63,8 @@ class XbmcRdioOperation:
         self._addon.add_directory({'mode': 'new_releases'}, {'title': self._addon.get_string(30215)})
         self._addon.add_directory({'mode': 'heavy_rotation'}, {'title': self._addon.get_string(30216)})
         self._addon.add_directory({'mode': 'following'}, {'title': self._addon.get_string(30208)})
-        self._addon.add_directory({'mode': 'search'}, {'title': self._addon.get_string(30209)})
+        self._addon.add_directory({'mode': 'search_artist_album'}, {'title': self._addon.get_string(30209)})
+        self._addon.add_directory({'mode': 'search_playlist'}, {'title': self._addon.get_string(30218)})
         self._addon.add_directory({'mode': 'reauthenticate'}, {'title': self._addon.get_string(30207)})
     else:
       self._addon.show_ok_dialog([self._addon.get_string(30900), self._addon.get_string(30901), self._addon.get_string(30902)])
@@ -72,18 +73,25 @@ class XbmcRdioOperation:
     self._addon.add_directory({'mode': 'settings'}, {'title': self._addon.get_string(30205)})
     self._addon.end_of_directory()
 
+  def search_artist_album(self):
+    self._search('Artist,Album')
 
-  def search(self):
+  def search_playlist(self):
+    self._search('Playlist')
+
+  def _search(self, types_to_search):
     kb = xbmc.Keyboard(heading = self._addon.get_string(30210))
     kb.doModal()
     if kb.isConfirmed():
       query = kb.getText()
-      search_results = self._rdio_api.call('search', query = query, types = 'Artist,Album', extras = 'playCount')
+      search_results = self._rdio_api.call('search', query = query, types = types_to_search, extras = 'playCount')
       for result in search_results['results']:
         if result['type'] == self._TYPE_ARTIST:
           self._add_artist(result)
         elif result['type'] == self._TYPE_ALBUM:
           self._add_album(result)
+        elif result['type'] == self._TYPE_PLAYLIST:
+          self._add_playlist(result)
 
     self._addon.end_of_directory()
 
