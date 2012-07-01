@@ -359,22 +359,38 @@ class XbmcRdioOperation:
 
   def add_to_collection(self, **params):
     key = params['key']
-
-    # If the thing being added is not a track (eg: album, playlist), then get the track list first
-    is_track = key[0] == self._TYPE_TRACK and key[1].isdigit()
-    track_keys = []
-    if not is_track:
-      track_container = self._rdio_api.call('get', keys = key, extras = 'tracks,Track.isInCollection')
-      for track in track_container[key]['tracks']:
-        if not track['isInCollection']:
-          track_keys.append(track['key'])
+    if self._is_track_key(key):
+      track_keys= [key]
     else:
-      track_keys.append(key)
+      track_keys = self._get_track_keys_not_in_collection(key)
 
-    self._rdio_api.call('addToCollection', keys = ','.join(track_keys))
+    if track_keys:
+      self._rdio_api.call('addToCollection', keys = ','.join(track_keys))
 
   def remove_from_collection(self, **params):
-    self._rdio_api.call('removeFromCollection', keys = params['key'])
+    key = params['key']
+    if self._is_track_key(key):
+      track_keys= [key]
+    else:
+      track_keys = self._get_track_keys_in_collection(key)
+
+    if track_keys:
+      self._rdio_api.call('removeFromCollection', keys = ','.join(track_keys))
+
+  def _get_track_keys_in_collection(self, key):
+    return self._get_track_keys(key, in_collection = True, not_in_collection = False)
+
+  def _get_track_keys_not_in_collection(self, key):
+    return self._get_track_keys(key, in_collection = False, not_in_collection = True)
+
+  def _get_track_keys(self, key, in_collection = True, not_in_collection = True):
+    track_keys = []
+    track_container = self._rdio_api.call('get', keys = key, extras = 'tracks,Track.isInCollection')
+    for track in track_container[key]['tracks']:
+      if ((in_collection and track['isInCollection']) or (not_in_collection and not track['isInCollection'])):
+        track_keys.append(track['key'])
+
+    return track_keys
 
 
   def reauthenticate(self):
@@ -393,6 +409,10 @@ class XbmcRdioOperation:
     url = 'special://home/addons/%s/%s' % (ADDON_ID, os.path.basename(__file__))
     params = str(self._addon.handle) + ",?" + urllib.urlencode(queries)
     return (menu_text, 'XBMC.RunScript(%s, %s)' % (url, params))
+
+
+  def _is_track_key(self, key):
+    return key[0] == self._TYPE_TRACK and key[1].isdigit()
 
 
   def execute(self):
