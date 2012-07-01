@@ -36,6 +36,7 @@ class XbmcRdioOperation:
   _TYPE_ARTIST = 'r'
   _TYPE_PLAYLIST = 'p'
   _TYPE_USER = 's'
+  _TYPE_TRACK = 't'
   _TYPE_ALBUM_IN_COLLECTION = 'al'
   _TYPE_ARTIST_IN_COLLECTION = 'rl'
 
@@ -160,8 +161,9 @@ class XbmcRdioOperation:
       self._add_album(album)
 
   def _add_album(self, album):
-    #add_collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30219), mode = 'add_to_collection', key = album['albumKey'])
-    #remove_collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30220), mode = 'remove_from_collection', key = album['albumKey'])
+    album_key = album['albumKey'] if 'albumKey' in album else album['key']
+    add_collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30219), mode = 'add_to_collection', key = album_key)
+    remove_collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30220), mode = 'remove_from_collection', key = album_key)
 
     self._addon.add_item({'mode': 'tracks', 'key': album['key']},
     {
@@ -173,7 +175,7 @@ class XbmcRdioOperation:
       'playCount': album['playCount']
     },
     item_type = 'music',
-    #contextmenu_items = [add_collection_context_menu_item, remove_collection_context_menu_item],
+    contextmenu_items = [add_collection_context_menu_item, remove_collection_context_menu_item],
     img = album['icon'],
     total_items = album['length'],
     is_folder = True)
@@ -356,7 +358,20 @@ class XbmcRdioOperation:
 
 
   def add_to_collection(self, **params):
-    self._rdio_api.call('addToCollection', keys = params['key'])
+    key = params['key']
+
+    # If the thing being added is not a track (eg: album, playlist), then get the track list first
+    is_track = key[0] == self._TYPE_TRACK and key[1].isdigit()
+    track_keys = []
+    if not is_track:
+      track_container = self._rdio_api.call('get', keys = key, extras = 'tracks,Track.isInCollection')
+      for track in track_container[key]['tracks']:
+        if not track['isInCollection']:
+          track_keys.append(track['key'])
+    else:
+      track_keys.append(key)
+
+    self._rdio_api.call('addToCollection', keys = ','.join(track_keys))
 
   def remove_from_collection(self, **params):
     self._rdio_api.call('removeFromCollection', keys = params['key'])
