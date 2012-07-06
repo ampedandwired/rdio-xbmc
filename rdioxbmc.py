@@ -123,7 +123,7 @@ class RdioApi:
     pi = rdio_svc.getPlaybackInfo({
         'playbackToken': self._state['playback_token'],
         'manualPlay': False,
-        'playerName': 'api_544189',
+        'playerName': 'api_429413',
         'type': 'flash',
         'key': key})
     if not pi:
