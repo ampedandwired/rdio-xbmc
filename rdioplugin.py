@@ -418,7 +418,7 @@ class XbmcRdioOperation:
   def execute(self):
     start_time = time.clock()
     mode = self._addon.queries['mode']
-    self._addon.log_debug("Executing Rdio plugin operation %s with params %s" % (mode, str(self._addon.queries)))
+    self._addon.log_notice("Executing Rdio %s addon operation %s with params %s" % (self._addon.get_version(), mode, str(self._addon.queries)))
     handler = getattr(self, mode)
     handler_args = inspect.getargspec(handler)
     if handler_args.keywords and len(handler_args.keywords) > 1:
@@ -427,7 +427,7 @@ class XbmcRdioOperation:
       handler()
 
     time_ms = (time.clock() - start_time) * 1000
-    self._addon.log_debug("Executed Rdio plugin operation %s in %i ms" % (mode, time_ms))
+    self._addon.log_notice("Executed Rdio addon operation %s in %i ms" % (mode, time_ms))
 
 
 XbmcRdioOperation(addon).execute()
