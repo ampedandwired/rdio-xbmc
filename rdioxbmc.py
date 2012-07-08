@@ -27,6 +27,8 @@ class RdioApi:
   _AMF_ENDPOINT = 'http://www.rdio.com/api/1/amf/'
   _STATE_FILE_NAME = 'rdio-state.json'
   _RDIO_DOMAIN = 'localhost'
+  _RDIO_PLAYBACK_SECRET = "A3wxEb2mooMZYl8nDOi2rg"
+  _RDIO_PLAYBACK_SECRET_SEED = 5381
   _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None, 'current_user': None}
 
 
@@ -40,10 +42,10 @@ class RdioApi:
     else:
       addon.log_debug("Loaded persistent auth state")
 
-    apikey = addon.get_setting('apikey')
-    self._rdio = Rdio(apikey, addon.get_setting('apisecret'), self._state['rdio_api'])
+    self._init_rdio()
 
-    addon.log_notice("Connected to Rdio with apikey " + apikey)
+  def _init_rdio(self):
+    self._rdio = Rdio(self._addon.get_setting('apikey'), self._addon.get_setting('apisecret'), self._state['rdio_api'])
 
 
   def authenticate(self):
@@ -67,7 +69,7 @@ class RdioApi:
       login_url = url_base + login_path[0]
       username = self._addon.get_setting('username')
       password = self._addon.get_setting('password')
-      self._addon.log_notice("Logging in to Rdio as %s using URL %s" % (username, login_url))
+      self._addon.log_notice("Logging in to Rdio using URL %s" % (login_url))
       html = self._net.http_POST(login_url, {'username': username, 'password': password}).content
       login_error_html = CommonFunctions.parseDOM(html, 'div', {'class': 'error-message'})
       if login_error_html:
@@ -94,11 +96,9 @@ class RdioApi:
 
     self._addon.log_notice("Getting playback token")
     self._state['playback_token'] = self._rdio.call('getPlaybackToken', domain=self._RDIO_DOMAIN)
-    self._addon.log_notice("Got playback token: " + self._state['playback_token'])
 
     self._addon.log_notice("Getting current user")
     self._state['current_user'] = self._rdio.call('currentUser')['key']
-    self._addon.log_notice("Current user key is " + self._state['current_user'])
 
     self._save_state()
     self._addon.log_notice("Successfully authenticated to Rdio")
@@ -109,6 +109,7 @@ class RdioApi:
     self._rdio.logout()
     self._state = self._INITIAL_STATE
     self._save_state()
+    self._init_rdio()
     self._addon.log_notice("Successfully logged out from Rdio")
 
 
@@ -120,11 +121,20 @@ class RdioApi:
     svc = RemotingService(self._AMF_ENDPOINT)
     rdio_svc = svc.getService('rdio')
 
+    playback_token = self._state['playback_token']
+    secret_string = key + playback_token + self._RDIO_PLAYBACK_SECRET
+    secret = self._RDIO_PLAYBACK_SECRET_SEED
+    for c in secret_string:
+        secret = ((secret << 5) + secret + ord(c)) % 65536;
+
     pi = rdio_svc.getPlaybackInfo({
-        'playbackToken': self._state['playback_token'],
+        'domain': self._RDIO_DOMAIN,
+        'playbackToken': playback_token,
         'manualPlay': False,
+        'requiresUnlimited': False,
         'playerName': 'api_429413',
         'type': 'flash',
+        'secret': secret,
         'key': key})
     if not pi:
         raise Exception, 'Failed to get playback info'
