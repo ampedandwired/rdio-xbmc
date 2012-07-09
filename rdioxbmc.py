@@ -146,7 +146,7 @@ class RdioApi:
     rtmp_info = {
       'rtmp': 'rtmpe://%s:1935%s' % (pi['streamHost'], pi['streamApp']),
       'app': pi['streamApp'][1:],
-      'playpath': 'mp3:%s' % pi['surl']
+      'playpath': 'mp3:%s' % pi['surl'].replace('30s-96', 'full-192')
     }
 
     stream_url = rtmp_info['rtmp']
