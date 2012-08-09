@@ -15,6 +15,8 @@
 # along with rdio-xbmc.  If not, see <http://www.gnu.org/licenses/>.
 
 import time
+import random
+import math
 from urlparse import urlparse, parse_qs
 from pyamf.remoting.client import RemotingService
 from t0mm0.common.addon import Addon
@@ -29,7 +31,7 @@ class RdioApi:
   _RDIO_DOMAIN = 'localhost'
   _RDIO_PLAYBACK_SECRET = "A3wxEb2mooMZYl8nDOi2rg"
   _RDIO_PLAYBACK_SECRET_SEED = 5381
-  _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None, 'current_user': None}
+  _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None, 'current_user': None, 'rdio_cookie': None}
 
 
   def __init__(self, addon):
@@ -89,10 +91,16 @@ class RdioApi:
     verifier = CommonFunctions.parseDOM(html, 'input', {'name': 'verifier'}, 'value')[0]
 
     self._addon.log_notice("Approving oauth token %s with pin %s" % (oauth_token, verifier))
-    self._net.http_POST(auth_url, {'oath_token': oauth_token, 'verifier': verifier, 'approve': ''})
+    approval_result = self._net.http_POST(auth_url, {'oath_token': oauth_token, 'verifier': verifier, 'approve': ''})
+    self._addon.log_debug(approval_result.content)
 
     self._addon.log_notice("Verifying OAuth token on Rdio API with pin " + verifier)
     self._rdio.complete_authentication(verifier)
+
+    self._addon.log_notice("Extracting Rdio cookie")
+    self._addon.log_debug("Cookies: " + str(self._net.get_cookies()))
+    self._state['rdio_cookie'] = self._net.get_cookies()['.rdio.com']['/']['r'].value
+    self._addon.log_debug("Extracted Rdio cookie: " + self._state['rdio_cookie'])
 
     self._addon.log_notice("Getting playback token")
     self._state['playback_token'] = self._rdio.call('getPlaybackToken', domain=self._RDIO_DOMAIN)
@@ -114,11 +122,16 @@ class RdioApi:
 
 
   def authenticated(self):
-    return self._rdio.authenticated and 'current_user' in self._state and self._state['current_user'] and self._state['playback_token']
+    return self._rdio.authenticated \
+      and'current_user' in self._state and self._state['current_user'] \
+      and 'rdio_cookie' in self._state and self._state['rdio_cookie']  \
+      and self._state['playback_token']
 
 
   def resolve_playback_url(self, key):
     svc = RemotingService(self._AMF_ENDPOINT)
+    svc.addHTTPHeader('Cookie', 'r=' + self._state['rdio_cookie'])
+    svc.addHTTPHeader('Host', 'www.rdio.com')
     rdio_svc = svc.getService('rdio')
 
     playback_token = self._state['playback_token']
@@ -127,12 +140,14 @@ class RdioApi:
     for c in secret_string:
         secret = ((secret << 5) + secret + ord(c)) % 65536;
 
+    playerName = 'api_%s' % str(int(math.floor(random.random() * 1000000)))
+
     pi = rdio_svc.getPlaybackInfo({
         'domain': self._RDIO_DOMAIN,
         'playbackToken': playback_token,
         'manualPlay': False,
         'requiresUnlimited': False,
-        'playerName': 'api_429413',
+        'playerName': playerName,
         'type': 'flash',
         'secret': secret,
         'key': key})
@@ -146,7 +161,7 @@ class RdioApi:
     rtmp_info = {
       'rtmp': 'rtmpe://%s:1935%s' % (pi['streamHost'], pi['streamApp']),
       'app': pi['streamApp'][1:],
-      'playpath': 'mp3:%s' % pi['surl'].replace('30s-96', 'full-192')
+      'playpath': 'mp3:%s' % pi['surl']
     }
 
     stream_url = rtmp_info['rtmp']

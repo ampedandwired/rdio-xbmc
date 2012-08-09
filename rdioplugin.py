@@ -164,6 +164,7 @@ class XbmcRdioOperation:
     album_key = album['albumKey'] if 'albumKey' in album else album['key']
     add_collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30219), mode = 'add_to_collection', key = album_key)
     remove_collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30220), mode = 'remove_from_collection', key = album_key)
+    playCount = album['playCount'] if album['playCount'] else 0
 
     self._addon.add_item({'mode': 'tracks', 'key': album['key']},
     {
@@ -172,7 +173,7 @@ class XbmcRdioOperation:
       'artist': album['artist'],
       'date': rdiocommon.iso_date_to_xbmc_date(album['releaseDate']),
       'duration': album['duration'],
-      'playCount': album['playCount']
+      'playCount': playCount
     },
     item_type = 'music',
     contextmenu_items = [add_collection_context_menu_item, remove_collection_context_menu_item],
