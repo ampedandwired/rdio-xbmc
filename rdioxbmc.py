@@ -26,7 +26,7 @@ from rdioapi import Rdio, RdioProtocolException
 
 
 class RdioApi:
-  _AMF_ENDPOINT = 'http://www.rdio.com/api/1/amf/'
+  _AMF_ENDPOINT = 'https://www.rdio.com/api/1/amf/'
   _STATE_FILE_NAME = 'rdio-state.json'
   _RDIO_DOMAIN = 'localhost'
   _RDIO_PLAYBACK_SECRET = "A3wxEb2mooMZYl8nDOi2rg"
