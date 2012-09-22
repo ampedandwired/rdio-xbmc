@@ -197,10 +197,13 @@ class XbmcRdioOperation:
     add_collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30219), mode = 'add_to_collection', key = album_key)
     remove_collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30220), mode = 'remove_from_collection', key = album_key)
     playCount = album['playCount'] if album['playCount'] else 0
+    title = '%s (%s)' % (album['name'], album['artist'])
+    if not album['canStream']:
+      title += '  :('
 
     self._addon.add_item({'mode': 'tracks', 'key': album['key']},
     {
-      'title': '%s (%s)' % (album['name'], album['artist']),
+      'title': title,
       'album': album['name'],
       'artist': album['artist'],
       'date': rdiocommon.iso_date_to_xbmc_date(album['releaseDate']),
@@ -361,7 +364,7 @@ class XbmcRdioOperation:
     self._addon.add_directory({'mode': 'artist', 'key': params['key']}, {'title': self._addon.get_string(30217)})
     self._addon.end_of_directory()
 
-  def _add_tracks(self, tracks):
+  def _add_tracks(self, tracks, show_artist = False):
     for track in tracks:
 
       if track['isInCollection']:
@@ -372,9 +375,15 @@ class XbmcRdioOperation:
       if not 'playCount' in track:
         track['playCount'] = 0
 
+      title = track['name']
+      if show_artist:
+        title += ' (%s)' % track['artist']
+      if not track['canStream']:
+        title += '  :('
+
       self._addon.add_item({'mode': 'play', 'key': track['key']},
         {
-          'title': track['name'],
+          'title': title,
           'artist': track['artist'],
           'album': track['album'],
           'duration': track['duration'],
