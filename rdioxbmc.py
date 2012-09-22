@@ -29,7 +29,7 @@ class RdioApi:
   _AMF_ENDPOINT = 'https://www.rdio.com/api/1/amf/'
   _STATE_FILE_NAME = 'rdio-state.json'
   _RDIO_DOMAIN = 'localhost'
-  _RDIO_PLAYBACK_SECRET = "A3wxEb2mooMZYl8nDOi2rg"
+  _RDIO_PLAYBACK_SECRET = "oZT8UKFgNJUl6b5C7pM82H"
   _RDIO_PLAYBACK_SECRET_SEED = 5381
   _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None, 'current_user': None, 'rdio_cookie': None}
 
