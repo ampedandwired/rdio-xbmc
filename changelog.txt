@@ -1,3 +1,8 @@
+[B]Version 1.4.0[/B]
+- Show sad face if track or album is not streamable (ie: due to regional licensing restrictions)
+- Subscribe to and unsubscribe from playlists (via context menu)
+- "Top Charts" menu - shows top albums, artists, playlists and songs on Rdio
+
 [B]Version 1.3.0[/B]
 - Link to show all albums for an artist
 - Album lists are sortable by album name, date and artist (when applicable)
