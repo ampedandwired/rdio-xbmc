@@ -258,7 +258,7 @@ class XbmcRdioOperation:
 
   def related_artists(self, **params):
     artists = self._rdio_api.call('getRelatedArtists', artist = params['key'])
-    _add_artists(artists)
+    self._add_artists(artists)
     xbmcplugin.setContent(self._addon.handle, 'artists')
     self._addon.end_of_directory()
 
@@ -303,6 +303,9 @@ class XbmcRdioOperation:
 
   def _add_playlist(self, playlist):
     playlist_title = '%s (%s)' % (playlist['name'], playlist['owner'])
+    subscribe_playlist_context_menu_item = self._build_context_menu_item(self._addon.get_string(30228), mode = 'add_to_collection', key = playlist['key'])
+    unsubscribe_playlist_context_menu_item = self._build_context_menu_item(self._addon.get_string(30229), mode = 'remove_from_collection', key = playlist['key'])
+
     self._addon.add_item({'mode': 'tracks', 'key': playlist['key']},
       {
         'title': playlist_title,
@@ -310,6 +313,7 @@ class XbmcRdioOperation:
         'artist': playlist['owner']
       },
       item_type = 'music',
+      contextmenu_items = [subscribe_playlist_context_menu_item, unsubscribe_playlist_context_menu_item],
       img = playlist['icon'],
       total_items = playlist['length'],
       is_folder = True)
@@ -404,7 +408,7 @@ class XbmcRdioOperation:
 
   def add_to_collection(self, **params):
     key = params['key']
-    if self._is_track_key(key):
+    if self._can_be_added_to_collection(key):
       track_keys= [key]
     else:
       track_keys = self._get_track_keys_not_in_collection(key)
@@ -414,7 +418,7 @@ class XbmcRdioOperation:
 
   def remove_from_collection(self, **params):
     key = params['key']
-    if self._is_track_key(key):
+    if self._can_be_added_to_collection(key):
       track_keys= [key]
     else:
       track_keys = self._get_track_keys_in_collection(key)
@@ -456,8 +460,8 @@ class XbmcRdioOperation:
     return (menu_text, 'XBMC.RunScript(%s, %s)' % (url, params))
 
 
-  def _is_track_key(self, key):
-    return key[0] == self._TYPE_TRACK and key[1].isdigit()
+  def _can_be_added_to_collection(self, key):
+    return (key[0] == self._TYPE_TRACK and key[1].isdigit()) or (key[0] == self._TYPE_PLAYLIST)
 
 
   def execute(self):
