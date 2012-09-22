@@ -65,6 +65,7 @@ class XbmcRdioOperation:
         self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
         self._addon.add_directory({'mode': 'new_releases'}, {'title': self._addon.get_string(30215)})
         self._addon.add_directory({'mode': 'heavy_rotation'}, {'title': self._addon.get_string(30216)})
+        self._addon.add_directory({'mode': 'top_charts'}, {'title': self._addon.get_string(30223)})
         self._addon.add_directory({'mode': 'following'}, {'title': self._addon.get_string(30208)})
         self._addon.add_directory({'mode': 'search_artist_album'}, {'title': self._addon.get_string(30209)})
         self._addon.add_directory({'mode': 'search_playlist'}, {'title': self._addon.get_string(30218)})
@@ -156,6 +157,37 @@ class XbmcRdioOperation:
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
 
+  def top_charts(self):
+    self._addon.add_directory({'mode': 'top_albums'}, {'title': self._addon.get_string(30224)})
+    self._addon.add_directory({'mode': 'top_artists'}, {'title': self._addon.get_string(30225)})
+    self._addon.add_directory({'mode': 'top_playlists'}, {'title': self._addon.get_string(30226)})
+    self._addon.add_directory({'mode': 'top_tracks'}, {'title': self._addon.get_string(30227)})
+    self._addon.end_of_directory()
+
+  def top_albums(self):
+    albums = self._rdio_api.call('getTopCharts', type = 'Album', count = 50, extras = 'playCount')
+    self._add_albums(albums)
+    xbmcplugin.setContent(self._addon.handle, 'albums')
+    self._addon.end_of_directory()
+
+  def top_artists(self):
+    artists = self._rdio_api.call('getTopCharts', type = 'Artist', count = 50, extras = 'playCount')
+    self._add_artists(artists)
+    xbmcplugin.setContent(self._addon.handle, 'artists')
+    self._addon.end_of_directory()
+
+  def top_playlists(self):
+    playlists = self._rdio_api.call('getTopCharts', type = 'Playlist', count = 50, extras = 'playCount')
+    self._add_playlists(playlists)
+    xbmcplugin.setContent(self._addon.handle, 'albums')
+    self._addon.end_of_directory()
+
+  def top_tracks(self):
+    tracks = self._rdio_api.call('getTopCharts', type = 'Track', count = 50, extras = 'playCount,isInCollection')
+    self._add_tracks(tracks)
+    self._addon.end_of_directory()
+
+
   def _add_albums(self, albums):
     for album in albums:
       self._add_album(album)
@@ -223,11 +255,14 @@ class XbmcRdioOperation:
 
   def related_artists(self, **params):
     artists = self._rdio_api.call('getRelatedArtists', artist = params['key'])
-    for artist in artists:
-      self._add_artist(artist)
-
+    _add_artists(artists)
     xbmcplugin.setContent(self._addon.handle, 'artists')
     self._addon.end_of_directory()
+
+
+  def _add_artists(self, artists):
+    for artist in artists:
+      self._add_artist(artist)
 
   def _add_artist(self, artist):
     queries = {'mode': 'artist', 'key': artist['key']}
