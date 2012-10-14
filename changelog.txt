@@ -1,3 +1,6 @@
+[B]Version 1.5.0[/B]
+- Add any track to an existing playlist
+
 [B]Version 1.4.0[/B]
 - Show sad face if track or album is not streamable (ie: due to regional licensing restrictions)
 - Subscribe to and unsubscribe from playlists (via context menu)

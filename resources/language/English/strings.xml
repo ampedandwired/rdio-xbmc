@@ -37,6 +37,7 @@
   <string id="30227">Top Songs</string>
   <string id="30228">Subscribe to playlist</string>
   <string id="30229">Unsubscribe from playlist</string>
+  <string id="30230">Add to Rdio playlist</string>
 
   <string id="30900">You must supply your Rdio username/password</string>
   <string id="30901">and Rdio API credentials in plugin settings.</string>

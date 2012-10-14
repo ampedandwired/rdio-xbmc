@@ -20,6 +20,7 @@ import inspect
 import time
 import urllib
 import xbmcplugin
+import xbmcgui
 from t0mm0.common.addon import Addon
 import rdiocommon
 
@@ -76,6 +77,7 @@ class XbmcRdioOperation:
 
     self._addon.add_directory({'mode': 'settings'}, {'title': self._addon.get_string(30205)})
     self._addon.end_of_directory()
+
 
   def search_artist_album(self):
     self._search('Artist,Album')
@@ -376,6 +378,8 @@ class XbmcRdioOperation:
       else:
         collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30219), mode = 'add_to_collection', key = track['key'])
 
+      add_playlist_context_menu_item = self._build_context_menu_item(self._addon.get_string(30230), mode = 'add_to_playlist', key = track['key'])
+
       if not 'playCount' in track:
         track['playCount'] = 0
 
@@ -395,7 +399,7 @@ class XbmcRdioOperation:
           'playCount': track['playCount']
         },
         item_type = 'music',
-        contextmenu_items = [collection_context_menu_item],
+        contextmenu_items = [collection_context_menu_item, add_playlist_context_menu_item],
         img = track['icon'])
 
 
@@ -425,6 +429,32 @@ class XbmcRdioOperation:
 
     if track_keys:
       self._rdio_api.call('removeFromCollection', keys = ','.join(track_keys))
+
+  def add_to_playlist(self, **params):
+    playlist = self._get_user_selected_playlist()
+    if playlist:
+      self._rdio_api.call('addToPlaylist', playlist = playlist, tracks = params['key'])
+
+  def _get_user_selected_playlist(self):
+    playlists = self._rdio_api.call('getPlaylists', extras = 'description')
+    playlist_map = {}
+    playlist_names = []
+    for playlist in playlists['owned']:
+      playlist_map[playlist['name']] = playlist['key']
+      playlist_names.append(playlist['name'])
+
+    for playlist in playlists['collab']:
+      playlist_map[playlist['name']] = playlist['key']
+      playlist_names.append(playlist['name'])
+
+    dialog = xbmcgui.Dialog()
+    selection = dialog.select("Select Playlist", playlist_names)
+    result = None
+    if selection >= 0:
+      result = playlist_map[playlist_names[selection]]
+
+    return result
+
 
   def _get_track_keys_in_collection(self, key):
     return self._get_track_keys(key, in_collection = True, not_in_collection = False)
