@@ -292,23 +292,23 @@ class XbmcRdioOperation:
     else:
       playlists = self._rdio_api.call('getPlaylists', extras = 'description')
 
-    self._add_playlists(playlists['owned'])
-    self._add_playlists(playlists['collab'])
-    self._add_playlists(playlists['subscribed'])
+    self._add_playlists(playlists['owned'], True)
+    self._add_playlists(playlists['collab'], True)
+    self._add_playlists(playlists['subscribed'], False)
 
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
 
-  def _add_playlists(self, playlists):
+  def _add_playlists(self, playlists, editable_playlist = False):
     for playlist in playlists:
-      self._add_playlist(playlist)
+      self._add_playlist(playlist, editable_playlist)
 
-  def _add_playlist(self, playlist):
+  def _add_playlist(self, playlist, editable_playlist = False):
     playlist_title = '%s (%s)' % (playlist['name'], playlist['owner'])
     subscribe_playlist_context_menu_item = self._build_context_menu_item(self._addon.get_string(30228), mode = 'add_to_collection', key = playlist['key'])
     unsubscribe_playlist_context_menu_item = self._build_context_menu_item(self._addon.get_string(30229), mode = 'remove_from_collection', key = playlist['key'])
 
-    self._addon.add_item({'mode': 'tracks', 'key': playlist['key']},
+    self._addon.add_item({'mode': 'tracks', 'key': playlist['key'], 'editable_playlist': editable_playlist},
       {
         'title': playlist_title,
         'album': playlist['name'],
@@ -356,7 +356,10 @@ class XbmcRdioOperation:
   def tracks(self, **params):
     key = params['key']
     track_container = self._rdio_api.call('get', keys = key, extras = 'tracks,Track.isInCollection,playCount')[key]
-    self._add_tracks(track_container['tracks'])
+    if 'editable_playlist' in params and params['editable_playlist'] == 'True':
+      self._add_tracks(track_container['tracks'], playlist_key = key)
+    else:
+      self._add_tracks(track_container['tracks'])
 
     # Add "More from this artist" link if container is an album or artist
     if track_container['type'][0] == self._TYPE_ALBUM or track_container['type'][0] == self._TYPE_ARTIST:
@@ -370,15 +373,20 @@ class XbmcRdioOperation:
     self._addon.add_directory({'mode': 'artist', 'key': params['key']}, {'title': self._addon.get_string(30217)})
     self._addon.end_of_directory()
 
-  def _add_tracks(self, tracks, show_artist = False):
+
+  def _add_tracks(self, tracks, show_artist = False, playlist_key = None):
+    i = 0
     for track in tracks:
 
+      context_menus = []
       if track['isInCollection']:
-        collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30220), mode = 'remove_from_collection', key = track['key'])
+        context_menus.append(self._build_context_menu_item(self._addon.get_string(30220), mode = 'remove_from_collection', key = track['key']))
       else:
-        collection_context_menu_item = self._build_context_menu_item(self._addon.get_string(30219), mode = 'add_to_collection', key = track['key'])
+        context_menus.append(self._build_context_menu_item(self._addon.get_string(30219), mode = 'add_to_collection', key = track['key']))
 
-      add_playlist_context_menu_item = self._build_context_menu_item(self._addon.get_string(30230), mode = 'add_to_playlist', key = track['key'])
+      context_menus.append(self._build_context_menu_item(self._addon.get_string(30230), mode = 'add_to_playlist', key = track['key']))
+      if playlist_key:
+        context_menus.append(self._build_context_menu_item(self._addon.get_string(30231), mode = 'remove_from_playlist', key = track['key'], playlist = playlist_key))
 
       if not 'playCount' in track:
         track['playCount'] = 0
@@ -399,8 +407,10 @@ class XbmcRdioOperation:
           'playCount': track['playCount']
         },
         item_type = 'music',
-        contextmenu_items = [collection_context_menu_item, add_playlist_context_menu_item],
+        contextmenu_items = context_menus,
         img = track['icon'])
+
+      i += 1
 
 
   def play(self, **params):
@@ -434,6 +444,23 @@ class XbmcRdioOperation:
     playlist = self._get_user_selected_playlist()
     if playlist:
       self._rdio_api.call('addToPlaylist', playlist = playlist, tracks = params['key'])
+
+  def remove_from_playlist(self, **params):
+    track_to_remove = params['key']
+    playlist = params['playlist']
+    track_container = self._rdio_api.call('get', keys = playlist, extras = 'tracks')[playlist]
+    i = 0
+    index_to_remove = None
+    for track in track_container['tracks']:
+      if track['key'] == track_to_remove:
+        index_to_remove = i
+        break
+
+      i += 1
+
+    if index_to_remove:
+      self._rdio_api.call('removeFromPlaylist', playlist = playlist, tracks = track_to_remove, index = index_to_remove, count = 1)
+
 
   def _get_user_selected_playlist(self):
     playlists = self._rdio_api.call('getPlaylists', extras = 'description')
