@@ -502,21 +502,31 @@ class XbmcRdioOperation:
 
 
   def play_artist_radio(self, **params):
-    playlist = self._add_next_radio_track_to_playlist(params['key'], clear_playlist = True)
+    playlist = self._add_next_radio_track_to_playlist(params['key'], params['key'], clear_playlist = True, allow_related = False)
     xbmc.Player().play(playlist)
 
   def play_artist_radio_track(self, **params):
     self.play(**params)
-    self._add_next_radio_track_to_playlist(params['artist'])
+    self._add_next_radio_track_to_playlist(params['baseArtist'], params['artist'])
 
-  def _add_next_radio_track_to_playlist(self, base_key, clear_playlist = False):
-    tracks = self._rdio_api.call('getTracksForArtist', artist = base_key, extras = 'playCount,isInCollection', start = 0, count = 20)
+  def _add_next_radio_track_to_playlist(self, base_key, last_key, clear_playlist = False, allow_related = True):
     playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
     if clear_playlist:
       playlist.clear()
 
-    track = tracks[random.randint(0, 19)]
-    self._addon.add_item({'mode': 'play_artist_radio_track', 'key': track['key'], 'artist': base_key},
+    track = None
+    while not track or not track['canStream']:
+      artist = base_key
+      track_count = 20
+      if allow_related and not (random.randint(1, 5) == 1):
+        artist = random.choice(self._rdio_api.call('getRelatedArtists', artist = last_key, start = 0, count = 10))['key']
+        track_count = 10
+
+      tracks = self._rdio_api.call('getTracksForArtist', artist = artist, extras = 'playCount,isInCollection', start = 0, count = track_count)
+      if len(tracks) > 0:
+        track = random.choice(tracks)
+
+    self._addon.add_item({'mode': 'play_artist_radio_track', 'key': track['key'], 'artist': artist, 'baseArtist': base_key},
         {
           'title': track['name'],
           'artist': track['artist'],
