@@ -18,6 +18,7 @@ import sys
 import os
 import inspect
 import time
+import random
 import urllib
 import xbmcplugin
 import xbmcgui
@@ -225,6 +226,7 @@ class XbmcRdioOperation:
     self._addon.add_directory({'mode': 'tracks_for_artist', 'key': key}, {'title': self._addon.get_string(30212)})
     self._addon.add_directory({'mode': 'all_albums_for_artist', 'key': key}, {'title': self._addon.get_string(30221)})
     self._addon.add_directory({'mode': 'related_artists', 'key': key}, {'title': self._addon.get_string(30213)})
+    self._addon.add_directory({'mode': 'play_artist_radio', 'key': key}, {'title': self._addon.get_string(30232)})
     self._addon.end_of_directory()
 
   def artists_in_collection(self, **params):
@@ -497,6 +499,37 @@ class XbmcRdioOperation:
         track_keys.append(track['key'])
 
     return track_keys
+
+
+  def play_artist_radio(self, **params):
+    playlist = self._add_next_radio_track_to_playlist(params['key'], clear_playlist = True)
+    xbmc.Player().play(playlist)
+
+  def play_artist_radio_track(self, **params):
+    self.play(**params)
+    self._add_next_radio_track_to_playlist(params['artist'])
+
+  def _add_next_radio_track_to_playlist(self, base_key, clear_playlist = False):
+    tracks = self._rdio_api.call('getTracksForArtist', artist = base_key, extras = 'playCount,isInCollection', start = 0, count = 20)
+    playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
+    if clear_playlist:
+      playlist.clear()
+
+    track = tracks[random.randint(0, 19)]
+    self._addon.add_item({'mode': 'play_artist_radio_track', 'key': track['key'], 'artist': base_key},
+        {
+          'title': track['name'],
+          'artist': track['artist'],
+          'album': track['album'],
+          'duration': track['duration'],
+          'tracknumber': track['trackNum'],
+          'playCount': track['playCount']
+        },
+        playlist = playlist,
+        item_type = 'music',
+        img = track['icon'])
+
+    return playlist
 
 
   def reauthenticate(self):
