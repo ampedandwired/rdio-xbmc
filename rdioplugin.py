@@ -91,7 +91,7 @@ class XbmcRdioOperation:
     kb.doModal()
     if kb.isConfirmed():
       query = kb.getText()
-      search_results = self._rdio_api.call('search', query = query, types = types_to_search, extras = 'playCount')
+      search_results = self._rdio_api.call('search', query = query, types = types_to_search, extras = 'playCount,bigIcon')
       for result in search_results['results']:
         if result['type'] == self._TYPE_ARTIST:
           self._add_artist(result)
@@ -106,9 +106,9 @@ class XbmcRdioOperation:
   def albums_in_collection(self, **params):
     start = int(params['start']) if 'start' in params else 0
     if 'key' in params:
-      albums = self._rdio_api.call('getAlbumsInCollection', user = params['key'], extras = 'playCount', count = self._PAGE_SIZE_ALBUMS, start = start)
+      albums = self._rdio_api.call('getAlbumsInCollection', user = params['key'], extras = 'playCount,bigIcon', count = self._PAGE_SIZE_ALBUMS, start = start)
     else:
-      albums = self._rdio_api.call('getAlbumsInCollection', extras = 'playCount', count = self._PAGE_SIZE_ALBUMS, start = start)
+      albums = self._rdio_api.call('getAlbumsInCollection', extras = 'playCount,bigIcon', count = self._PAGE_SIZE_ALBUMS, start = start)
 
     self._add_albums(albums)
 
@@ -132,9 +132,9 @@ class XbmcRdioOperation:
 
   def _albums_for_artist(self, top_only = False, **params):
     if top_only:
-      albums = self._rdio_api.call('getAlbumsForArtist', artist = params['key'], extras = 'playCount', start = 0, count = 9)
+      albums = self._rdio_api.call('getAlbumsForArtist', artist = params['key'], extras = 'playCount,bigIcon', start = 0, count = 9)
     else:
-      albums = self._rdio_api.call('getAlbumsForArtist', artist = params['key'], extras = 'playCount')
+      albums = self._rdio_api.call('getAlbumsForArtist', artist = params['key'], extras = 'playCount,bigIcon')
 
     self._add_albums(albums)
 
@@ -148,14 +148,14 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
   def new_releases(self):
-    albums = self._rdio_api.call('getNewReleases', extras = 'playCount')
+    albums = self._rdio_api.call('getNewReleases', extras = 'playCount,bigIcon')
     self._add_albums(albums)
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
 
   def heavy_rotation(self):
     albums = self._rdio_api.call('getHeavyRotation', user = self._rdio_api.current_user(),
-      friends = True, type = 'albums', start = 0, count = self._PAGE_SIZE_HEAVY_ROTATION, extras = 'playCount')
+      friends = True, type = 'albums', start = 0, count = self._PAGE_SIZE_HEAVY_ROTATION, extras = 'playCount,bigIcon')
     self._add_albums(albums)
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
@@ -168,7 +168,7 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
   def top_albums(self):
-    albums = self._rdio_api.call('getTopCharts', type = 'Album', count = 50, extras = 'playCount')
+    albums = self._rdio_api.call('getTopCharts', type = 'Album', count = 50, extras = 'playCount,bigIcon')
     self._add_albums(albums)
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
@@ -186,7 +186,7 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
   def top_tracks(self):
-    tracks = self._rdio_api.call('getTopCharts', type = 'Track', count = 50, extras = 'playCount,isInCollection')
+    tracks = self._rdio_api.call('getTopCharts', type = 'Track', count = 50, extras = 'playCount,bigIcon,isInCollection')
     self._add_tracks(tracks)
     self._addon.end_of_directory()
 
@@ -215,7 +215,7 @@ class XbmcRdioOperation:
     },
     item_type = 'music',
     contextmenu_items = [add_collection_context_menu_item, remove_collection_context_menu_item],
-    img = album['icon'],
+    img = album['bigIcon'] if 'bigIcon' in album else album['icon'],
     total_items = album['length'],
     is_folder = True)
 
@@ -244,9 +244,9 @@ class XbmcRdioOperation:
 
   def albums_for_artist_in_collection(self, **params):
     if 'key' in params:
-      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], user = params['key'], extras = 'playCount,Track.isInCollection')
+      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], user = params['key'], extras = 'playCount,bigIcon,Track.isInCollection')
     else:
-      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], extras = 'playCount,Track.isInCollection')
+      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], extras = 'playCount,bigIcon,Track.isInCollection')
 
     if len(albums) == 1:
       album = albums[0]
@@ -357,7 +357,7 @@ class XbmcRdioOperation:
 
   def tracks(self, **params):
     key = params['key']
-    track_container = self._rdio_api.call('get', keys = key, extras = 'tracks,Track.isInCollection,playCount')[key]
+    track_container = self._rdio_api.call('get', keys = key, extras = 'tracks,Track.isInCollection,playCount,bigIcon,Track.bigIcon')[key]
     if 'editable_playlist' in params and params['editable_playlist'] == 'True':
       self._add_tracks(track_container['tracks'], playlist_key = key)
     else:
@@ -370,7 +370,7 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
   def tracks_for_artist(self, **params):
-    tracks = self._rdio_api.call('getTracksForArtist', artist = params['key'], extras = 'playCount,isInCollection', start = 0, count = 20)
+    tracks = self._rdio_api.call('getTracksForArtist', artist = params['key'], extras = 'playCount,bigIcon,isInCollection', start = 0, count = 20)
     self._add_tracks(tracks)
     self._addon.add_directory({'mode': 'artist', 'key': params['key']}, {'title': self._addon.get_string(30217)})
     self._addon.end_of_directory()
@@ -410,7 +410,7 @@ class XbmcRdioOperation:
         },
         item_type = 'music',
         contextmenu_items = context_menus,
-        img = track['icon'])
+        img = track['bigIcon'] if 'bigIcon' in track else track['icon'])
 
       i += 1
 
