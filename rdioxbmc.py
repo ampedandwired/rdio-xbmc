@@ -29,7 +29,7 @@ class RdioApi:
   _AMF_ENDPOINT = 'https://www.rdio.com/api/1/amf/'
   _STATE_FILE_NAME = 'rdio-state.json'
   _RDIO_DOMAIN = 'localhost'
-  _RDIO_PLAYBACK_SECRET = "oZT8UKFgNJUl6b5C7pM82H"
+  _RDIO_PLAYBACK_SECRET = "6JSuiNxJ2cokAK9T2yWbEOPX"
   _RDIO_PLAYBACK_SECRET_SEED = 5381
   _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None, 'current_user': None, 'rdio_cookie': None}
 
@@ -129,7 +129,7 @@ class RdioApi:
 
 
   def resolve_playback_url(self, key):
-    svc = RemotingService(self._AMF_ENDPOINT)
+    svc = RemotingService(self._AMF_ENDPOINT, 3, user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.97 Safari/537.11")
     svc.addHTTPHeader('Cookie', 'r=' + self._state['rdio_cookie'])
     svc.addHTTPHeader('Host', 'www.rdio.com')
     rdio_svc = svc.getService('rdio')
