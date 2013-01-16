@@ -23,6 +23,7 @@ from t0mm0.common.addon import Addon
 from t0mm0.common.net import Net
 import CommonFunctions
 from rdioapi import Rdio, RdioProtocolException
+from useragent import getUserAgent
 
 
 class RdioApi:
@@ -129,7 +130,9 @@ class RdioApi:
 
 
   def resolve_playback_url(self, key):
-    svc = RemotingService(self._AMF_ENDPOINT, 3, user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.97 Safari/537.11")
+    user_agent = getUserAgent()
+    self._addon.log_notice("Using user agent '%s'" % user_agent)
+    svc = RemotingService(self._AMF_ENDPOINT, amf_version = 0, user_agent = user_agent)
     svc.addHTTPHeader('Cookie', 'r=' + self._state['rdio_cookie'])
     svc.addHTTPHeader('Host', 'www.rdio.com')
     rdio_svc = svc.getService('rdio')
