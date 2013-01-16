@@ -1,3 +1,8 @@
+[B]Version 1.7.0[/B]
+- Use big icons for album art (thanks nmunson)
+- Portuguese (Brazil) translation (thanks iurifq)
+- Fixes for Rdio API changes
+
 [B]Version 1.6.0[/B]
 - Play "artist radio station"
 
