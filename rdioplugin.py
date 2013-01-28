@@ -309,6 +309,8 @@ class XbmcRdioOperation:
     playlist_title = '%s (%s)' % (playlist['name'], playlist['owner'])
     subscribe_playlist_context_menu_item = self._build_context_menu_item(self._addon.get_string(30228), mode = 'add_to_collection', key = playlist['key'])
     unsubscribe_playlist_context_menu_item = self._build_context_menu_item(self._addon.get_string(30229), mode = 'remove_from_collection', key = playlist['key'])
+    img = playlist['icon'] if 'icon' in playlist else ''
+    length = playlist['length'] if 'length' in playlist else 0
 
     self._addon.add_item({'mode': 'tracks', 'key': playlist['key'], 'editable_playlist': editable_playlist},
       {
@@ -318,8 +320,8 @@ class XbmcRdioOperation:
       },
       item_type = 'music',
       contextmenu_items = [subscribe_playlist_context_menu_item, unsubscribe_playlist_context_menu_item],
-      img = playlist['icon'],
-      total_items = playlist['length'],
+      img = img,
+      total_items = length,
       is_folder = True)
 
 
