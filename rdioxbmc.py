@@ -17,13 +17,13 @@
 import time
 import random
 import math
+import os
 from urlparse import urlparse, parse_qs
 from pyamf.remoting.client import RemotingService
 from t0mm0.common.addon import Addon
-from t0mm0.common.net import Net
-import CommonFunctions
 from rdioapi import Rdio, RdioProtocolException
 from useragent import getUserAgent
+from phantomxbmc import PhantomXbmc
 
 
 class RdioApi:
@@ -33,11 +33,12 @@ class RdioApi:
   _RDIO_PLAYBACK_SECRET = "6JSuiNxJ2cokAK9T2yWbEOPX"
   _RDIO_PLAYBACK_SECRET_SEED = 5381
   _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None, 'current_user': None, 'rdio_cookie': None}
+  _CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+  _RDIO_AUTH_SCRIPT = os.path.join(_CURRENT_DIR, 'rdio.js')
 
 
   def __init__(self, addon):
     self._addon = addon
-    self._net = Net()
     self._state = addon.load_data(self._STATE_FILE_NAME)
     if not self._state:
       addon.log_debug("Persistent auth state not loaded - initialising new state")
@@ -52,9 +53,6 @@ class RdioApi:
 
 
   def authenticate(self):
-
-    # TODO Should internationalize error messages in exceptions thrown here
-
     self._addon.log_notice("Authenticating to Rdio")
     try:
       auth_url = self._rdio.begin_authentication('oob')
@@ -63,45 +61,26 @@ class RdioApi:
       raise RdioAuthenticationException('Check your API credentials in plugin settings')
 
     parsed_auth_url = urlparse(auth_url)
-    url_base = "%s://%s" % (parsed_auth_url.scheme, parsed_auth_url.netloc)
+    parsed_params = parse_qs(parsed_auth_url.query)
+    oauth_token = parsed_params['oauth_token'][0]
+    self._addon.log_notice("Authorizing OAuth token " + oauth_token)
+    phantom_xbmc = PhantomXbmc(self._addon)
+    auth_result = phantom_xbmc.phantom(_RDIO_AUTH_SCRIPT, oauth_token)
 
-    self._addon.log_notice("Authorizing OAuth token " + auth_url)
-    html = self._net.http_GET(auth_url).content
-    login_path = CommonFunctions.parseDOM(html, 'form', {'name': 'login'}, 'action')
-    if login_path:
-      login_url = url_base + login_path[0]
-      username = self._addon.get_setting('username')
-      password = self._addon.get_setting('password')
-      self._addon.log_notice("Logging in to Rdio using URL %s" % (login_url))
-      html = self._net.http_POST(login_url, {'username': username, 'password': password}).content
-      login_error_html = CommonFunctions.parseDOM(html, 'div', {'class': 'error-message'})
-      if login_error_html:
-        error_messages = CommonFunctions.parseDOM(login_error_html, 'li')
-        if error_messages:
-          error_message = error_messages[0] if type(error_messages) is list else error_messages
-        else:
-          error_message = login_error_html
+    if 'error' in auth_result:
+      raise RdioAuthenticationException("Rdio authentication failed: " + str(auth_result['error']))
 
-        raise RdioAuthenticationException(error_message)
+    if not 'verifier' in auth_result or not 'cookie' in auth_result:
+      raise RdioAuthenticationException("Rdio verification failed - could not find verifier or cookie")
 
-    oauth_token_values = CommonFunctions.parseDOM(html, 'input', {'name': 'oauth_token'}, 'value')
-    if not oauth_token_values:
-      raise RdioAuthenticationException("Login failed, check username in plugin settings")
-
-    oauth_token = oauth_token_values[0]
-    verifier = CommonFunctions.parseDOM(html, 'input', {'name': 'verifier'}, 'value')[0]
-
-    self._addon.log_notice("Approving oauth token %s with pin %s" % (oauth_token, verifier))
-    approval_result = self._net.http_POST(auth_url, {'oath_token': oauth_token, 'verifier': verifier, 'approve': ''})
-    self._addon.log_debug(approval_result.content)
+    verifier = auth_result['verifier']
+    cookie = auth_result['cookie']
 
     self._addon.log_notice("Verifying OAuth token on Rdio API with pin " + verifier)
     self._rdio.complete_authentication(verifier)
 
-    self._addon.log_notice("Extracting Rdio cookie")
-    self._addon.log_debug("Cookies: " + str(self._net.get_cookies()))
-    self._state['rdio_cookie'] = self._net.get_cookies()['.rdio.com']['/']['r'].value
-    self._addon.log_debug("Extracted Rdio cookie: " + self._state['rdio_cookie'])
+    self._addon.log_debug("Extracted Rdio cookie: " + cookie)
+    self._state['rdio_cookie'] = cookie
 
     self._addon.log_notice("Getting playback token")
     self._state['playback_token'] = self._rdio.call('getPlaybackToken', domain=self._RDIO_DOMAIN)
