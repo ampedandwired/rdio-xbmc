@@ -206,7 +206,7 @@ class XbmcRdioOperation:
 
     self._addon.add_item({'mode': 'tracks', 'key': album['key']},
     {
-      'title': title,
+      'title': title.encode('UTF-8'),
       'album': album['name'],
       'artist': album['artist'],
       'date': rdiocommon.iso_date_to_xbmc_date(album['releaseDate']),
@@ -280,7 +280,7 @@ class XbmcRdioOperation:
 
     self._addon.add_item(queries,
       {
-        'title': artist['name'],
+        'title': artist['name'].encode('UTF-8'),
         'artist': artist['name']
       },
       item_type = 'music',
@@ -314,7 +314,7 @@ class XbmcRdioOperation:
 
     self._addon.add_item({'mode': 'tracks', 'key': playlist['key'], 'editable_playlist': editable_playlist},
       {
-        'title': playlist_title,
+        'title': playlist_title.encode('UTF-8'),
         'album': playlist['name'],
         'artist': playlist['owner']
       },
@@ -349,7 +349,7 @@ class XbmcRdioOperation:
 
     self._addon.add_item({'mode': 'user', 'key': user['key']},
       {
-        'title': name,
+        'title': name.encode('UTF-8'),
         'artist': name
       },
       item_type = 'music',
@@ -403,7 +403,7 @@ class XbmcRdioOperation:
 
       self._addon.add_item({'mode': 'play', 'key': track['key']},
         {
-          'title': title,
+          'title': title.encode('UTF-8'),
           'artist': track['artist'],
           'album': track['album'],
           'duration': track['duration'],
@@ -530,7 +530,7 @@ class XbmcRdioOperation:
 
     self._addon.add_item({'mode': 'play_artist_radio_track', 'key': track['key'], 'artist': artist, 'baseArtist': base_key},
         {
-          'title': track['name'],
+          'title': track['name'].encode('UTF-8'),
           'artist': track['artist'],
           'album': track['album'],
           'duration': track['duration'],

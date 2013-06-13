@@ -23,7 +23,7 @@ from pyamf.remoting.client import RemotingService
 from t0mm0.common.addon import Addon
 from rdioapi import Rdio, RdioProtocolException
 from useragent import getUserAgent
-from phantomxbmc import PhantomXbmc
+from phantomxbmc import PhantomXbmc, PhantomXbmcException
 
 
 class RdioApi:
@@ -65,7 +65,10 @@ class RdioApi:
     oauth_token = parsed_params['oauth_token'][0]
     self._addon.log_notice("Authorizing OAuth token " + oauth_token)
     phantom_xbmc = PhantomXbmc(self._addon)
-    auth_result = phantom_xbmc.phantom(_RDIO_AUTH_SCRIPT, oauth_token)
+    try:
+      auth_result = phantom_xbmc.phantom(self._RDIO_AUTH_SCRIPT, oauth_token)
+    except PhantomXbmcException, pje:
+      raise RdioAuthenticationException(str(pje))
 
     if 'error' in auth_result:
       raise RdioAuthenticationException("Rdio authentication failed: " + str(auth_result['error']))
