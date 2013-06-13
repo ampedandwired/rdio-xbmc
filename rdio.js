@@ -44,8 +44,8 @@ exports.steps = {
 
     execute: function() {
       page.evaluate(function() {
-        document.querySelector('input[name=username]').value = 'charles.blaxland@gmail.com';
-        document.querySelector('input[name=password]').value = 'slsMcr4YqMloccqBvjc0';
+        document.querySelector('input[name=username]').value = 'xxxx';
+        document.querySelector('input[name=password]').value = 'xxxx';
         var submitButton = document.querySelector('button[name=submit]');
         submitButton.removeAttribute('disabled');
         submitButton.click();
