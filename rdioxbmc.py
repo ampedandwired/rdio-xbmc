@@ -60,14 +60,16 @@ class RdioApi:
       self._addon.log_error('Rdio begin_authentication failed: ' + str(rpe))
       raise RdioAuthenticationException('Check your API credentials in plugin settings')
 
+    username = self._addon.get_setting('username')
+    password = self._addon.get_setting('password')
     parsed_auth_url = urlparse(auth_url)
     parsed_params = parse_qs(parsed_auth_url.query)
     oauth_token = parsed_params['oauth_token'][0]
     self._addon.log_notice("Authorizing OAuth token " + oauth_token)
     phantom_xbmc = PhantomXbmc(self._addon)
     try:
-      auth_result = phantom_xbmc.phantom(self._RDIO_AUTH_SCRIPT, oauth_token)
-    except PhantomXbmcException, pje:
+      auth_result = phantom_xbmc.phantom(self._RDIO_AUTH_SCRIPT, username, password, oauth_token)
+    except PhantomXException, pje:
       raise RdioAuthenticationException(str(pje))
 
     if 'error' in auth_result:

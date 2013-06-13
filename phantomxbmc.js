@@ -66,7 +66,7 @@ var PhantomXbmc = {
       }
 
     } catch (err) {
-      PhantomXbmc.result.err = err.message;
+      PhantomXbmc.result.error = err.message;
       PhantomXbmc.done();
     }
   },
