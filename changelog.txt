@@ -1,3 +1,12 @@
+[B]Version 1.8.0[/B]
+- Spanish translation (thanks https://github.com/Dpons039)
+- German translation (thanks efty.edge)
+- Fix for authentication issues
+- Fix for errors when displaying menus with accented characters
+
+[B]Version 1.7.1[/B]
+- Fixed bug showing playlists with no icon or length
+
 [B]Version 1.7.0[/B]
 - Use big icons for album art (thanks nmunson)
 - Portuguese (Brazil) translation (thanks iurifq)
