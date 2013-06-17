@@ -18,16 +18,19 @@ import time
 import random
 import math
 import os
+import re
+import json
 from urlparse import urlparse, parse_qs
 from pyamf.remoting.client import RemotingService
 from t0mm0.common.addon import Addon
-from rdioapi import Rdio, RdioProtocolException
+from t0mm0.common.net import Net
+from rdioapi import Rdio, RdioProtocolException, RdioAPIException
 from useragent import getUserAgent
-from phantomxbmc import PhantomXbmc, PhantomXbmcException
 
 
 class RdioApi:
-  _AMF_ENDPOINT = 'https://www.rdio.com/api/1/amf/'
+  _RDIO_API_ENDPOINT = 'https://www.rdio.com/api/1'
+  _AMF_ENDPOINT = _RDIO_API_ENDPOINT + '/amf/'
   _STATE_FILE_NAME = 'rdio-state.json'
   _RDIO_DOMAIN = 'localhost'
   _RDIO_PLAYBACK_SECRET = "6JSuiNxJ2cokAK9T2yWbEOPX"
@@ -38,7 +41,9 @@ class RdioApi:
 
 
   def __init__(self, addon):
+    self._authorization_key = None
     self._addon = addon
+    self._net = Net(user_agent = getUserAgent())
     self._state = addon.load_data(self._STATE_FILE_NAME)
     if not self._state:
       addon.log_debug("Persistent auth state not loaded - initialising new state")
@@ -60,32 +65,21 @@ class RdioApi:
       self._addon.log_error('Rdio begin_authentication failed: ' + str(rpe))
       raise RdioAuthenticationException('Check your API credentials in plugin settings')
 
-    username = self._addon.get_setting('username')
-    password = self._addon.get_setting('password')
     parsed_auth_url = urlparse(auth_url)
     parsed_params = parse_qs(parsed_auth_url.query)
     oauth_token = parsed_params['oauth_token'][0]
-    self._addon.log_notice("Authorizing OAuth token " + oauth_token)
-    phantom_xbmc = PhantomXbmc(self._addon)
-    try:
-      auth_result = phantom_xbmc.phantom(self._RDIO_AUTH_SCRIPT, username, password, oauth_token)
-    except PhantomXException, pje:
-      raise RdioAuthenticationException(str(pje))
 
-    if 'error' in auth_result:
-      raise RdioAuthenticationException("Rdio authentication failed: " + str(auth_result['error']))
+    self._addon.log_notice("Authorizing OAuth token")
+    oauth_state = self.call_direct('getOAuth1State', token = oauth_token)
+    verifier = oauth_state['verifier']
+    self.call_direct('approveOAuth1App', token = oauth_token, verifier = verifier)
+    self._addon.log_notice("Appoved oauth token")
 
-    if not 'verifier' in auth_result or not 'cookie' in auth_result:
-      raise RdioAuthenticationException("Rdio verification failed - could not find verifier or cookie")
+    self._addon.log_notice("Extracting Rdio cookie")
+    self._state['rdio_cookie'] = self._net.get_cookies()['.rdio.com']['/']['r'].value
 
-    verifier = auth_result['verifier']
-    cookie = auth_result['cookie']
-
-    self._addon.log_notice("Verifying OAuth token on Rdio API with pin " + verifier)
+    self._addon.log_notice("Verifying OAuth token on Rdio API")
     self._rdio.complete_authentication(verifier)
-
-    self._addon.log_debug("Extracted Rdio cookie: " + cookie)
-    self._state['rdio_cookie'] = cookie
 
     self._addon.log_notice("Getting playback token")
     self._state['playback_token'] = self._rdio.call('getPlaybackToken', domain=self._RDIO_DOMAIN)
@@ -158,8 +152,10 @@ class RdioApi:
     self._addon.log_debug("Resolved playback URL for key '%s' to %s" % (key, stream_url))
     return stream_url
 
+
   def current_user(self):
     return self._state['current_user']
+
 
   def call(self, method, **args):
     if not self.authenticated():
@@ -174,9 +170,69 @@ class RdioApi:
     return result
 
 
+  def call_direct(self, method, **args):
+    '''
+    Calls an Rdio API method directly through Python HTTP rather than through the Rdio API library.
+    This technique requires us to log in on the Rdio home page to get an authorization key. It does,
+    however, allow us to call undocumented API methods that aren't allowed through the usual API.
+    '''
+    if not self._authorization_key:
+      self._login()
+
+    start_time = time.clock()
+    self._addon.log_debug("Executing Rdio direct API call '%s'" % method)
+    request_args = {
+      'method': method,
+      '_authorization_key': self._authorization_key
+    }
+
+    request_args.update(args)
+    http_response = self._net.http_POST(self._RDIO_API_ENDPOINT + '/' + method, request_args)
+    response = json.loads(http_response.content)
+    self._addon.log_debug("Rdio API response: " + str(response))
+    time_ms = (time.clock() - start_time) * 1000
+    self._addon.log_debug("Executed Rdio direct API call %s in %i ms" % (method, time_ms))
+
+    if response['status'] == 'ok':
+      return response['result']
+    else:
+      raise RdioAPIException(response['message'])
+
+
+  def _login(self):
+    # TODO - can we save the authorization key and reuse it? Would have to save cookies too.
+
+    self._addon.log_debug("Logging in to Rdio")
+
+    http_response = self._net.http_GET('https://www.rdio.com/account/signin/')
+    self._authorization_key = self._extract_authorization_key(http_response.content)
+    self._addon.log_debug("Retrieved signin page")
+
+    username = self._addon.get_setting('username')
+    password = self._addon.get_setting('password')
+    response = self.call_direct('signIn', username = username, password = password, remember = '1')
+    redirect_url = response['redirect_url']
+    self._addon.log_debug("Signin successful, redirect URL is %s" % redirect_url)
+
+    http_response = self._net.http_GET(redirect_url)
+    self._authorization_key = self._extract_authorization_key(http_response.content)
+    self._addon.log_debug("Login successful")
+
+
+  def _extract_authorization_key(self, text):
+    result = None
+    authorizationKeyMatch = re.search(r'"authorizationKey": "([^"]+)"', text)
+    if authorizationKeyMatch:
+      result = authorizationKeyMatch.group(1)
+    else:
+      self._addon.log_error("Unable to find authorization key on signin page:\n" + text)
+      raise RdioAuthenticationException("Unable to find authorization key")
+
+    return result
+
+
   def _save_state(self):
     self._addon.save_data(self._STATE_FILE_NAME, self._state)
-
 
 
 class RdioAuthenticationException(Exception):
