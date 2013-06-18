@@ -108,6 +108,10 @@ class RdioApi:
 
 
   def resolve_playback_url(self, key):
+    return self._resolve_rtmp_playback_url_via_flash(key)
+
+
+  def _resolve_rtmp_playback_url_via_flash(self, key):
     user_agent = getUserAgent()
     self._addon.log_notice("Using user agent '%s'" % user_agent)
     svc = RemotingService(self._AMF_ENDPOINT, amf_version = 0, user_agent = user_agent)
@@ -135,23 +139,36 @@ class RdioApi:
     if not pi:
         raise Exception, 'Failed to get playback info'
 
-    if not pi['canStream']:
-      self._addon.log_notice('Streaming key %s is not allowed' % key)
-      return None
+    return self._extract_rtmp_url_from_playback_info(pi)
 
-    rtmp_info = {
-      'rtmp': 'rtmpe://%s:1935%s' % (pi['streamHost'], pi['streamApp']),
-      'app': pi['streamApp'][1:],
-      'playpath': 'mp3:%s' % pi['surl']
-    }
 
-    stream_url = rtmp_info['rtmp']
-    for key, value in rtmp_info.items():
-      stream_url += '' if key == 'rtmp' else ' %s=%s' % (key, value)
+  def _resolve_rtmp_playback_url_via_http(self, key):
+    '''
+    Not used yet, and somewhat experimental, but this could come in handy.
+    Basically gets the flash playback info from the web API rather than from the flash API.
+    '''
+    pi = self._get_playback_info_via_http(key, 'flash')
+    return self._extract_rtmp_url_from_playback_info(pi)
 
+
+  def _resolve_http_playback_url_via_http(self, key):
+    '''
+    Not used yet, and somewhat experimental, but this could come in handy.
+    Basically gets the http playback info from the web API rather than from the flash API.
+    '''
+    pi = self._get_playback_info_via_http(key, 'web')
+    stream_url = pi['surl']
     self._addon.log_debug("Resolved playback URL for key '%s' to %s" % (key, stream_url))
     return stream_url
 
+
+  def _get_playback_info_via_http(self, key, streaming_type = 'web'):
+    return self.call_direct('getPlaybackInfo',
+      requiresUnlimited = False,
+      manualPlay = False,
+      key = key,
+      type = streaming_type,
+      playerName = 'api_%s' % str(int(math.floor(random.random() * 1000000))))
 
   def current_user(self):
     return self._state['current_user']
@@ -229,6 +246,26 @@ class RdioApi:
       raise RdioAuthenticationException("Unable to find authorization key")
 
     return result
+
+
+  def _extract_rtmp_url_from_playback_info(self, pi):
+    if not pi['canStream']:
+      self._addon.log_notice('Streaming key %s is not allowed' % pi['key'])
+      return None
+
+    rtmp_info = {
+      'rtmp': 'rtmpe://%s:1935%s' % (pi['streamHost'], pi['streamApp']),
+      'app': pi['streamApp'][1:],
+      'playpath': 'mp3:%s' % pi['surl']
+    }
+
+    stream_url = rtmp_info['rtmp']
+    for key, value in rtmp_info.items():
+      stream_url += '' if key == 'rtmp' else ' %s=%s' % (key, value)
+
+    self._addon.log_debug("Resolved playback URL for key '%s' to %s" % (pi['key'], stream_url))
+    return stream_url
+
 
 
   def _save_state(self):
