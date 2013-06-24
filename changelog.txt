@@ -1,3 +1,7 @@
+[B]Version 1.8.1[/B]
+- Encode all menu items as UTF8 (t0mm0 common Addon now requires it)
+- Add ability to change the streaming mode and how playback info is retrieved
+
 [B]Version 1.8.0[/B]
 - Spanish translation (thanks https://github.com/Dpons039)
 - German translation (thanks efty.edge)
