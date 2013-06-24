@@ -59,24 +59,24 @@ class XbmcRdioOperation:
           self._rdio_api.authenticate()
         except RdioAuthenticationException, rae:
           self._addon.show_error_dialog([self._addon.get_string(30903), str(rae)])
-          self._addon.add_directory({'mode': 'main'}, {'title': self._addon.get_string(30206)})
+          self._addon.add_directory({'mode': 'main'}, {'title': self._addon.get_string(30206).encode('UTF-8')})
 
       if self._rdio_api.authenticated():
-        self._addon.add_directory({'mode': 'albums_in_collection'}, {'title': self._addon.get_string(30204)})
-        self._addon.add_directory({'mode': 'artists_in_collection'}, {'title': self._addon.get_string(30203)})
-        self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200)})
-        self._addon.add_directory({'mode': 'new_releases'}, {'title': self._addon.get_string(30215)})
-        self._addon.add_directory({'mode': 'heavy_rotation'}, {'title': self._addon.get_string(30216)})
-        self._addon.add_directory({'mode': 'top_charts'}, {'title': self._addon.get_string(30223)})
-        self._addon.add_directory({'mode': 'following'}, {'title': self._addon.get_string(30208)})
-        self._addon.add_directory({'mode': 'search_artist_album'}, {'title': self._addon.get_string(30209)})
-        self._addon.add_directory({'mode': 'search_playlist'}, {'title': self._addon.get_string(30218)})
-        self._addon.add_directory({'mode': 'reauthenticate'}, {'title': self._addon.get_string(30207)})
+        self._addon.add_directory({'mode': 'albums_in_collection'}, {'title': self._addon.get_string(30204).encode('UTF-8')})
+        self._addon.add_directory({'mode': 'artists_in_collection'}, {'title': self._addon.get_string(30203).encode('UTF-8')})
+        self._addon.add_directory({'mode': 'playlists'}, {'title': self._addon.get_string(30200).encode('UTF-8')})
+        self._addon.add_directory({'mode': 'new_releases'}, {'title': self._addon.get_string(30215).encode('UTF-8')})
+        self._addon.add_directory({'mode': 'heavy_rotation'}, {'title': self._addon.get_string(30216).encode('UTF-8')})
+        self._addon.add_directory({'mode': 'top_charts'}, {'title': self._addon.get_string(30223).encode('UTF-8')})
+        self._addon.add_directory({'mode': 'following'}, {'title': self._addon.get_string(30208).encode('UTF-8')})
+        self._addon.add_directory({'mode': 'search_artist_album'}, {'title': self._addon.get_string(30209).encode('UTF-8')})
+        self._addon.add_directory({'mode': 'search_playlist'}, {'title': self._addon.get_string(30218).encode('UTF-8')})
+        self._addon.add_directory({'mode': 'reauthenticate'}, {'title': self._addon.get_string(30207).encode('UTF-8')})
     else:
-      self._addon.show_ok_dialog([self._addon.get_string(30900), self._addon.get_string(30901), self._addon.get_string(30902)])
-      self._addon.add_directory({'mode': 'main'}, {'title': self._addon.get_string(30206)})
+      self._addon.show_ok_dialog([self._addon.get_string(30900).encode('UTF-8'), self._addon.get_string(30901).encode('UTF-8'), self._addon.get_string(30902).encode('UTF-8')])
+      self._addon.add_directory({'mode': 'main'}, {'title': self._addon.get_string(30206).encode('UTF-8')})
 
-    self._addon.add_directory({'mode': 'settings'}, {'title': self._addon.get_string(30205)})
+    self._addon.add_directory({'mode': 'settings'}, {'title': self._addon.get_string(30205).encode('UTF-8')})
     self._addon.end_of_directory()
 
 
@@ -116,7 +116,7 @@ class XbmcRdioOperation:
     if len(albums) == self._PAGE_SIZE_ALBUMS:
       queries = params.copy()
       queries['start'] = start + self._PAGE_SIZE_ALBUMS
-      self._addon.add_item(queries, {'title': self._addon.get_string(30214)}, is_folder = True)
+      self._addon.add_item(queries, {'title': self._addon.get_string(30214).encode('UTF-8')}, is_folder = True)
 
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ARTIST)
@@ -142,7 +142,7 @@ class XbmcRdioOperation:
       xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
       xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
     else:
-      self._addon.add_directory({'mode': 'all_albums_for_artist', 'key': params['key']}, {'title': self._addon.get_string(30222)})
+      self._addon.add_directory({'mode': 'all_albums_for_artist', 'key': params['key']}, {'title': self._addon.get_string(30222).encode('UTF-8')})
 
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
@@ -161,10 +161,10 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
   def top_charts(self):
-    self._addon.add_directory({'mode': 'top_albums'}, {'title': self._addon.get_string(30224)})
-    self._addon.add_directory({'mode': 'top_artists'}, {'title': self._addon.get_string(30225)})
-    self._addon.add_directory({'mode': 'top_playlists'}, {'title': self._addon.get_string(30226)})
-    self._addon.add_directory({'mode': 'top_tracks'}, {'title': self._addon.get_string(30227)})
+    self._addon.add_directory({'mode': 'top_albums'}, {'title': self._addon.get_string(30224).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'top_artists'}, {'title': self._addon.get_string(30225).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'top_playlists'}, {'title': self._addon.get_string(30226).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'top_tracks'}, {'title': self._addon.get_string(30227).encode('UTF-8')})
     self._addon.end_of_directory()
 
   def top_albums(self):
@@ -222,11 +222,11 @@ class XbmcRdioOperation:
 
   def artist(self, **params):
     key = params['key']
-    self._addon.add_directory({'mode': 'top_albums_for_artist', 'key': key}, {'title': self._addon.get_string(30211)})
-    self._addon.add_directory({'mode': 'tracks_for_artist', 'key': key}, {'title': self._addon.get_string(30212)})
-    self._addon.add_directory({'mode': 'all_albums_for_artist', 'key': key}, {'title': self._addon.get_string(30221)})
-    self._addon.add_directory({'mode': 'related_artists', 'key': key}, {'title': self._addon.get_string(30213)})
-    self._addon.add_directory({'mode': 'play_artist_radio', 'key': key}, {'title': self._addon.get_string(30232)})
+    self._addon.add_directory({'mode': 'top_albums_for_artist', 'key': key}, {'title': self._addon.get_string(30211).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'tracks_for_artist', 'key': key}, {'title': self._addon.get_string(30212).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'all_albums_for_artist', 'key': key}, {'title': self._addon.get_string(30221).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'related_artists', 'key': key}, {'title': self._addon.get_string(30213).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'play_artist_radio', 'key': key}, {'title': self._addon.get_string(30232).encode('UTF-8')})
     self._addon.end_of_directory()
 
   def artists_in_collection(self, **params):
@@ -257,7 +257,7 @@ class XbmcRdioOperation:
       xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
       xbmcplugin.setContent(self._addon.handle, 'albums')
 
-    self._addon.add_directory({'mode': 'artist', 'key': params['artist']}, {'title': self._addon.get_string(30217)})
+    self._addon.add_directory({'mode': 'artist', 'key': params['artist']}, {'title': self._addon.get_string(30217).encode('UTF-8')})
     self._addon.end_of_directory()
 
   def related_artists(self, **params):
@@ -337,9 +337,9 @@ class XbmcRdioOperation:
 
   def user(self, **params):
     key = params['key']
-    self._addon.add_directory({'mode': 'albums_in_collection', 'key': key}, {'title': self._addon.get_string(30204)})
-    self._addon.add_directory({'mode': 'artists_in_collection', 'key': key}, {'title': self._addon.get_string(30203)})
-    self._addon.add_directory({'mode': 'playlists', 'key': key}, {'title': self._addon.get_string(30200)})
+    self._addon.add_directory({'mode': 'albums_in_collection', 'key': key}, {'title': self._addon.get_string(30204).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'artists_in_collection', 'key': key}, {'title': self._addon.get_string(30203).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'playlists', 'key': key}, {'title': self._addon.get_string(30200).encode('UTF-8')})
     self._addon.end_of_directory()
 
   def _add_user(self, user):
@@ -367,14 +367,14 @@ class XbmcRdioOperation:
 
     # Add "More from this artist" link if container is an album or artist
     if track_container['type'][0] == self._TYPE_ALBUM or track_container['type'][0] == self._TYPE_ARTIST:
-      self._addon.add_directory({'mode': 'artist', 'key': track_container['artistKey']}, {'title': self._addon.get_string(30217)})
+      self._addon.add_directory({'mode': 'artist', 'key': track_container['artistKey']}, {'title': self._addon.get_string(30217).encode('UTF-8')})
 
     self._addon.end_of_directory()
 
   def tracks_for_artist(self, **params):
     tracks = self._rdio_api.call('getTracksForArtist', artist = params['key'], extras = 'playCount,bigIcon,isInCollection', start = 0, count = 20)
     self._add_tracks(tracks)
-    self._addon.add_directory({'mode': 'artist', 'key': params['key']}, {'title': self._addon.get_string(30217)})
+    self._addon.add_directory({'mode': 'artist', 'key': params['key']}, {'title': self._addon.get_string(30217).encode('UTF-8')})
     self._addon.end_of_directory()
 
 
