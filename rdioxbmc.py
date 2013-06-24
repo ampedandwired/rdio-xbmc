@@ -35,20 +35,22 @@ class RdioApi:
   _RDIO_DOMAIN = 'localhost'
   _RDIO_PLAYBACK_SECRET = "6JSuiNxJ2cokAK9T2yWbEOPX"
   _RDIO_PLAYBACK_SECRET_SEED = 5381
-  _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None, 'current_user': None, 'rdio_cookie': None}
-  _CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-  _RDIO_AUTH_SCRIPT = os.path.join(_CURRENT_DIR, 'rdio.js')
+  _INITIAL_STATE = {'rdio_api': {'auth_state': {}}, 'playback_token': None, 'current_user': None, 'rdio_cookie': None, 'authorization_key': None}
 
 
   def __init__(self, addon):
-    self._authorization_key = None
     self._addon = addon
-    self._net = Net(user_agent = getUserAgent())
+    self._cookie_file = os.path.join(self._addon.get_profile(), 'rdio_cookies.txt')
+    self._net = Net(user_agent = getUserAgent(), cookie_file = self._cookie_file)
     self._state = addon.load_data(self._STATE_FILE_NAME)
     if not self._state:
       addon.log_debug("Persistent auth state not loaded - initialising new state")
       self._state = self._INITIAL_STATE
     else:
+      # Check for keys added to state that might not be in the saved copy
+      if 'authorization_key' not in self._state:
+        self._state['authorization_key'] = None
+
       addon.log_debug("Loaded persistent auth state")
 
     self._init_rdio()
@@ -108,10 +110,20 @@ class RdioApi:
 
 
   def resolve_playback_url(self, key):
-    return self._resolve_rtmp_playback_url_via_flash(key)
+    playback_url = None
+    stream_mode = int(self._addon.get_setting('stream_mode'))
+    if not stream_mode:
+      playback_url = self._resolve_rtmp_playback_url_via_flash(key)
+    elif stream_mode == 1:
+      playback_url = self._resolve_rtmp_playback_url_via_http(key)
+    else:
+      playback_url = self._resolve_http_playback_url_via_http(key)
+
+    return playback_url
 
 
   def _resolve_rtmp_playback_url_via_flash(self, key):
+    self._addon.log_notice("Resolving rtmp playback url for %s using flash" % key)
     user_agent = getUserAgent()
     self._addon.log_notice("Using user agent '%s'" % user_agent)
     svc = RemotingService(self._AMF_ENDPOINT, amf_version = 0, user_agent = user_agent)
@@ -143,19 +155,13 @@ class RdioApi:
 
 
   def _resolve_rtmp_playback_url_via_http(self, key):
-    '''
-    Not used yet, and somewhat experimental, but this could come in handy.
-    Basically gets the flash playback info from the web API rather than from the flash API.
-    '''
+    self._addon.log_notice("Resolving rtmp playback url for %s using web" % key)
     pi = self._get_playback_info_via_http(key, 'flash')
     return self._extract_rtmp_url_from_playback_info(pi)
 
 
   def _resolve_http_playback_url_via_http(self, key):
-    '''
-    Not used yet, and somewhat experimental, but this could come in handy.
-    Basically gets the http playback info from the web API rather than from the flash API.
-    '''
+    self._addon.log_notice("Resolving HTTP playback url for %s using web" % key)
     pi = self._get_playback_info_via_http(key, 'web')
     stream_url = pi['surl']
     self._addon.log_debug("Resolved playback URL for key '%s' to %s" % (key, stream_url))
@@ -193,14 +199,14 @@ class RdioApi:
     This technique requires us to log in on the Rdio home page to get an authorization key. It does,
     however, allow us to call undocumented API methods that aren't allowed through the usual API.
     '''
-    if not self._authorization_key:
+    if not self._state['authorization_key']:
       self._login()
 
     start_time = time.clock()
     self._addon.log_debug("Executing Rdio direct API call '%s'" % method)
     request_args = {
       'method': method,
-      '_authorization_key': self._authorization_key
+      '_authorization_key': self._state['authorization_key']
     }
 
     request_args.update(args)
@@ -217,12 +223,10 @@ class RdioApi:
 
 
   def _login(self):
-    # TODO - can we save the authorization key and reuse it? Would have to save cookies too.
-
     self._addon.log_debug("Logging in to Rdio")
 
     http_response = self._net.http_GET('https://www.rdio.com/account/signin/')
-    self._authorization_key = self._extract_authorization_key(http_response.content)
+    self._state['authorization_key'] = self._extract_authorization_key(http_response.content)
     self._addon.log_debug("Retrieved signin page")
 
     username = self._addon.get_setting('username')
@@ -232,7 +236,9 @@ class RdioApi:
     self._addon.log_debug("Signin successful, redirect URL is %s" % redirect_url)
 
     http_response = self._net.http_GET(redirect_url)
-    self._authorization_key = self._extract_authorization_key(http_response.content)
+    self._state['authorization_key'] = self._extract_authorization_key(http_response.content)
+    self._net.save_cookies(self._cookie_file)
+    self._save_state()
     self._addon.log_debug("Login successful")
 
 
