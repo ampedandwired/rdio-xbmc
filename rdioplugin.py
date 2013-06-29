@@ -244,21 +244,19 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
   def albums_for_artist_in_collection(self, **params):
+    artist = params['artist']
     if 'key' in params:
-      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], user = params['key'], extras = 'playCount,bigIcon,Track.isInCollection')
+      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = artist, user = params['key'], extras = 'playCount,bigIcon,Track.isInCollection')
     else:
-      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = params['artist'], extras = 'playCount,bigIcon,Track.isInCollection')
+      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = artist, extras = 'playCount,bigIcon,Track.isInCollection')
 
-    if len(albums) == 1:
-      album = albums[0]
-      self._add_tracks(album['tracks'])
-    else:
-      self._add_albums(albums)
-      xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
-      xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
-      xbmcplugin.setContent(self._addon.handle, 'albums')
+    self._add_albums(albums)
+    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
+    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
+    xbmcplugin.setContent(self._addon.handle, 'albums')
 
-    self._addon.add_directory({'mode': 'artist', 'key': params['artist']}, {'title': self._addon.get_string(30217).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'play_artist_radio', 'key': artist, 'collection_only': True}, {'title': self._addon.get_string(30233).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'artist', 'key': artist}, {'title': self._addon.get_string(30217).encode('UTF-8')})
     self._addon.end_of_directory()
 
   def related_artists(self, **params):
@@ -511,7 +509,10 @@ class XbmcRdioOperation:
 
   def play_artist_radio(self, **params):
     artist = params['key']
-    collection_only = 'collection_only' in params and params['collection_only'] == 'true'
+    collection_only = False
+    if 'collection_only' in params:
+      collection_only = bool(params['collection_only'])
+      self._addon.log_notice("********************** collection only is %s" % collection_only)
 
     radio = RdioRadio(self._addon, self._rdio_api)
     track = radio.next_track(params['key'], allow_related = False, collection_only = collection_only)
