@@ -18,12 +18,13 @@ import sys
 import os
 import inspect
 import time
-import random
 import urllib
 import xbmcplugin
 import xbmcgui
 from t0mm0.common.addon import Addon
 import rdiocommon
+
+from rdioradio import RdioRadio
 
 
 ADDON_ID = 'plugin.audio.rdio'
@@ -378,7 +379,7 @@ class XbmcRdioOperation:
     self._addon.end_of_directory()
 
 
-  def _add_tracks(self, tracks, show_artist = False, playlist_key = None):
+  def _add_tracks(self, tracks, show_artist = False, playlist_key = None, xbmc_playlist = False, extra_queries = None):
     i = 0
     for track in tracks:
 
@@ -401,7 +402,11 @@ class XbmcRdioOperation:
       if not track['canStream']:
         title += '  :('
 
-      self._addon.add_item({'mode': 'play', 'key': track['key']},
+      queries = {'mode': 'play', 'key': track['key']}
+      if extra_queries:
+        queries.update(extra_queries)
+
+      self._addon.add_item(queries,
         {
           'title': title.encode('UTF-8'),
           'artist': track['artist'],
@@ -410,6 +415,7 @@ class XbmcRdioOperation:
           'tracknumber': track['trackNum'],
           'playCount': track['playCount']
         },
+        playlist = xbmc_playlist,
         item_type = 'music',
         contextmenu_items = context_menus,
         img = track['bigIcon'] if 'bigIcon' in track else track['icon'])
@@ -504,44 +510,27 @@ class XbmcRdioOperation:
 
 
   def play_artist_radio(self, **params):
-    playlist = self._add_next_radio_track_to_playlist(params['key'], params['key'], clear_playlist = True, allow_related = False)
+    artist = params['key']
+    collection_only = 'collection_only' in params and params['collection_only'] == 'true'
+
+    radio = RdioRadio(self._addon, self._rdio_api)
+    track = radio.next_track(params['key'], allow_related = False, collection_only = collection_only)
+    playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
+    playlist.clear()
+    self._add_tracks([track], xbmc_playlist = playlist, extra_queries = {'mode': 'play_artist_radio_track', 'artist': artist, 'baseArtist': artist})
     xbmc.Player().play(playlist)
 
   def play_artist_radio_track(self, **params):
     self.play(**params)
-    self._add_next_radio_track_to_playlist(params['baseArtist'], params['artist'])
 
-  def _add_next_radio_track_to_playlist(self, base_key, last_key, clear_playlist = False, allow_related = True):
+    this_artist = params['artist']
+    base_artist = params['baseArtist']
+    collection_only = 'collection_only' in params and params['collection_only'] == 'true'
+
+    radio = RdioRadio(self._addon, self._rdio_api)
+    track = radio.next_track(base_artist, this_artist, allow_related = True, collection_only = collection_only)
     playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
-    if clear_playlist:
-      playlist.clear()
-
-    track = None
-    while not track or not track['canStream']:
-      artist = base_key
-      track_count = 20
-      if allow_related and not (random.randint(1, 5) == 1):
-        artist = random.choice(self._rdio_api.call('getRelatedArtists', artist = last_key, start = 0, count = 10))['key']
-        track_count = 10
-
-      tracks = self._rdio_api.call('getTracksForArtist', artist = artist, extras = 'playCount,isInCollection', start = 0, count = track_count)
-      if len(tracks) > 0:
-        track = random.choice(tracks)
-
-    self._addon.add_item({'mode': 'play_artist_radio_track', 'key': track['key'], 'artist': artist, 'baseArtist': base_key},
-        {
-          'title': track['name'].encode('UTF-8'),
-          'artist': track['artist'],
-          'album': track['album'],
-          'duration': track['duration'],
-          'tracknumber': track['trackNum'],
-          'playCount': track['playCount']
-        },
-        playlist = playlist,
-        item_type = 'music',
-        img = track['icon'])
-
-    return playlist
+    self._add_tracks([track], xbmc_playlist = playlist, extra_queries = {'mode': 'play_artist_radio_track', 'artist': this_artist, 'baseArtist': base_artist})
 
 
   def reauthenticate(self):
