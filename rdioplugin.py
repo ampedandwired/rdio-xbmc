@@ -382,7 +382,7 @@ class XbmcRdioOperation:
     for track in tracks:
 
       context_menus = []
-      if track['isInCollection']:
+      if 'isInCollection' in track and track['isInCollection']:
         context_menus.append(self._build_context_menu_item(self._addon.get_string(30220), mode = 'remove_from_collection', key = track['key']))
       else:
         context_menus.append(self._build_context_menu_item(self._addon.get_string(30219), mode = 'add_to_collection', key = track['key']))
@@ -512,13 +512,12 @@ class XbmcRdioOperation:
     collection_only = False
     if 'collection_only' in params:
       collection_only = bool(params['collection_only'])
-      self._addon.log_notice("********************** collection only is %s" % collection_only)
 
     radio = RdioRadio(self._addon, self._rdio_api)
     track = radio.next_track(params['key'], allow_related = False, collection_only = collection_only)
     playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
     playlist.clear()
-    self._add_tracks([track], xbmc_playlist = playlist, extra_queries = {'mode': 'play_artist_radio_track', 'artist': artist, 'baseArtist': artist})
+    self._add_tracks([track], xbmc_playlist = playlist, extra_queries = {'mode': 'play_artist_radio_track', 'artist': artist, 'baseArtist': artist, 'collection_only': collection_only})
     xbmc.Player().play(playlist)
 
   def play_artist_radio_track(self, **params):
@@ -526,12 +525,14 @@ class XbmcRdioOperation:
 
     this_artist = params['artist']
     base_artist = params['baseArtist']
-    collection_only = 'collection_only' in params and params['collection_only'] == 'true'
+    collection_only = False
+    if 'collection_only' in params:
+      collection_only = bool(params['collection_only'])
 
     radio = RdioRadio(self._addon, self._rdio_api)
     track = radio.next_track(base_artist, this_artist, allow_related = True, collection_only = collection_only)
     playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
-    self._add_tracks([track], xbmc_playlist = playlist, extra_queries = {'mode': 'play_artist_radio_track', 'artist': this_artist, 'baseArtist': base_artist})
+    self._add_tracks([track], xbmc_playlist = playlist, extra_queries = {'mode': 'play_artist_radio_track', 'artist': this_artist, 'baseArtist': base_artist, 'collection_only': collection_only})
 
 
   def reauthenticate(self):
