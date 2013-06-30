@@ -245,8 +245,10 @@ class XbmcRdioOperation:
 
   def albums_for_artist_in_collection(self, **params):
     artist = params['artist']
-    if 'key' in params:
-      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = artist, user = params['key'], extras = 'playCount,bigIcon,Track.isInCollection')
+    user = params['key'] if 'key' in params else self._rdio_api.current_user()
+
+    if user:
+      albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = artist, user = user, extras = 'playCount,bigIcon,Track.isInCollection')
     else:
       albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = artist, extras = 'playCount,bigIcon,Track.isInCollection')
 
@@ -255,7 +257,7 @@ class XbmcRdioOperation:
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
     xbmcplugin.setContent(self._addon.handle, 'albums')
 
-    self._addon.add_directory({'mode': 'play_artist_radio', 'key': artist, 'collection_only': True}, {'title': self._addon.get_string(30233).encode('UTF-8')})
+    self._addon.add_directory({'mode': 'play_artist_radio', 'key': artist, 'user': user}, {'title': self._addon.get_string(30233).encode('UTF-8')})
     self._addon.add_directory({'mode': 'artist', 'key': artist}, {'title': self._addon.get_string(30217).encode('UTF-8')})
     self._addon.end_of_directory()
 
@@ -509,15 +511,16 @@ class XbmcRdioOperation:
 
   def play_artist_radio(self, **params):
     artist = params['key']
-    collection_only = False
-    if 'collection_only' in params:
-      collection_only = bool(params['collection_only'])
+    user = params['user'] if 'user' in params else None
 
     radio = RdioRadio(self._addon, self._rdio_api)
-    track = radio.next_track(params['key'], allow_related = False, collection_only = collection_only)
+    track = radio.next_track(params['key'], allow_related = False, user = user)
     playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
     playlist.clear()
-    self._add_tracks([track], xbmc_playlist = playlist, extra_queries = {'mode': 'play_artist_radio_track', 'artist': artist, 'baseArtist': artist, 'collection_only': collection_only})
+    queries = {'mode': 'play_artist_radio_track', 'artist': artist, 'baseArtist': artist}
+    if user:
+      queries['user'] = user
+    self._add_tracks([track], xbmc_playlist = playlist, extra_queries = queries)
     xbmc.Player().play(playlist)
 
   def play_artist_radio_track(self, **params):
@@ -525,14 +528,16 @@ class XbmcRdioOperation:
 
     this_artist = params['artist']
     base_artist = params['baseArtist']
-    collection_only = False
-    if 'collection_only' in params:
-      collection_only = bool(params['collection_only'])
+    user = params['user'] if 'user' in params else None
 
     radio = RdioRadio(self._addon, self._rdio_api)
-    track = radio.next_track(base_artist, this_artist, allow_related = True, collection_only = collection_only)
+    track = radio.next_track(base_artist, this_artist, allow_related = True, user = user)
     playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
-    self._add_tracks([track], xbmc_playlist = playlist, extra_queries = {'mode': 'play_artist_radio_track', 'artist': this_artist, 'baseArtist': base_artist, 'collection_only': collection_only})
+    queries = {'mode': 'play_artist_radio_track', 'artist': this_artist, 'baseArtist': base_artist}
+    if user:
+      queries['user'] = user
+
+    self._add_tracks([track], xbmc_playlist = playlist, extra_queries = queries)
 
 
   def reauthenticate(self):

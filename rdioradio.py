@@ -8,16 +8,16 @@ class RdioRadio:
     self._rdio_api = rdio_api
 
 
-  def next_track(self, base_artist, last_artist = None, allow_related = True, collection_only = False):
+  def next_track(self, base_artist, last_artist = None, allow_related = True, user = None):
     track = None
     while not track or not track['canStream']:
-      artist = self._choose_artist(base_artist, last_artist, collection_only)
-      track = self._choose_track(artist, collection_only)
+      artist = self._choose_artist(base_artist, last_artist, user)
+      track = self._choose_track(artist, user)
 
     return track
 
 
-  def _choose_artist(self, base_artist, last_artist, collection_only):
+  def _choose_artist(self, base_artist, last_artist, user):
     if not last_artist:
       last_artist = base_artist
 
@@ -26,10 +26,10 @@ class RdioRadio:
 
     candidate_artist_keys = None
 
-    if collection_only:
-      related_artists = self._rdio_api.call('getRelatedArtists', artist = last_artist, start = 0, count = 100)
+    if user:
+      related_artists = self._rdio_api.call('getRelatedArtists', artist = last_artist)
       related_artist_keys = [artist['key'] for artist in related_artists]
-      collection_artists = self._rdio_api.call('getArtistsInCollection', start = 0, count = 10000)
+      collection_artists = self._rdio_api.call('getArtistsInCollection', user = user)
       collection_artist_keys = [artist['artistKey'] for artist in collection_artists]
       candidate_artist_keys = list(set(related_artist_keys) & set(collection_artist_keys))
       self._addon.log_notice("************************ " + str(collection_artist_keys))
@@ -47,10 +47,10 @@ class RdioRadio:
 
     return artist
 
-  def _choose_track(self, artist, collection_only):
+  def _choose_track(self, artist, user):
     tracks = None
-    if collection_only:
-      tracks = self._rdio_api.call('getTracksForArtistInCollection', artist = artist)
+    if user:
+      tracks = self._rdio_api.call('getTracksForArtistInCollection', artist = artist, user = user)
     else:
       tracks = self._rdio_api.call('getTracksForArtist', artist = artist, extras = 'playCount,isInCollection', start = 0, count = 15)
 
