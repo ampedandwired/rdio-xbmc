@@ -514,7 +514,7 @@ class XbmcRdioOperation:
     user = params['user'] if 'user' in params else None
 
     radio = RdioRadio(self._addon, self._rdio_api)
-    track = radio.next_track(params['key'], allow_related = False, user = user)
+    track = radio.next_track(params['key'], user = user)
     playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
     playlist.clear()
     queries = {'mode': 'play_artist_radio_track', 'artist': artist, 'baseArtist': artist}
@@ -531,7 +531,7 @@ class XbmcRdioOperation:
     user = params['user'] if 'user' in params else None
 
     radio = RdioRadio(self._addon, self._rdio_api)
-    track = radio.next_track(base_artist, this_artist, allow_related = True, user = user)
+    track = radio.next_track(base_artist, this_artist, user = user)
     playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
     queries = {'mode': 'play_artist_radio_track', 'artist': this_artist, 'baseArtist': base_artist}
     if user:

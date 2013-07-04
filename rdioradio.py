@@ -3,49 +3,49 @@ import random
 
 class RdioRadio:
 
+  _RADIO_STATE_FILE_NAME = 'rdio-radio-state.json'
+
   def __init__(self, addon, rdio_api):
     self._addon = addon
     self._rdio_api = rdio_api
+    self._state = addon.load_data(self._RADIO_STATE_FILE_NAME)
+    if not self._state:
+      self._state = {}
 
 
-  def next_track(self, base_artist, last_artist = None, allow_related = True, user = None):
+  def next_track(self, base_artist, last_artist = None, user = None):
+    if not last_artist:
+      self._state = {}
+
     track = None
     while not track or not track['canStream']:
       artist = self._choose_artist(base_artist, last_artist, user)
       track = self._choose_track(artist, user)
 
+    self._save_state()
     return track
 
 
   def _choose_artist(self, base_artist, last_artist, user):
-    if not last_artist:
-      last_artist = base_artist
-
-    if random.randint(1, 5) == 1:
+    if not last_artist or random.randint(1, 5) == 1:
       return base_artist
 
+    chosen_artist = None
     candidate_artist_keys = None
 
+    candidate_artist_keys = self._cached_value('related_artists_' + last_artist, lambda: [artist['key'] for artist in self._rdio_api.call('getRelatedArtists', artist = last_artist)])
     if user:
-      related_artists = self._rdio_api.call('getRelatedArtists', artist = last_artist)
-      related_artist_keys = [artist['key'] for artist in related_artists]
-      collection_artists = self._rdio_api.call('getArtistsInCollection', user = user)
-      collection_artist_keys = [artist['artistKey'] for artist in collection_artists]
-      candidate_artist_keys = list(set(related_artist_keys) & set(collection_artist_keys))
-      self._addon.log_notice("************************ " + str(collection_artist_keys))
-      self._addon.log_notice("************************ " + str(related_artist_keys))
-      self._addon.log_notice("************************ " + str(candidate_artist_keys))
-    else:
-      related_artists = self._rdio_api.call('getRelatedArtists', artist = last_artist, start = 0, count = 10)
-      candidate_artist_keys = [artist['key'] for artist in related_artists]
+      collection_artist_keys = self._cached_value('artists_in_collection_' + user, lambda: [artist['artistKey'] for artist in self._rdio_api.call('getArtistsInCollection', user = user)])
+      candidate_artist_keys = list(set(candidate_artist_keys) & set(collection_artist_keys))
 
     if candidate_artist_keys:
-      artist = random.choice(candidate_artist_keys)
+      chosen_artist = random.choice(candidate_artist_keys)
 
-    if not artist:
-      artist = base_artist
+    if not chosen_artist:
+      chosen_artist = base_artist
 
-    return artist
+    return chosen_artist
+
 
   def _choose_track(self, artist, user):
     tracks = None
@@ -59,3 +59,18 @@ class RdioRadio:
       track = random.choice(tracks)
 
     return track
+
+
+  def _save_state(self):
+    self._addon.save_data(self._RADIO_STATE_FILE_NAME, self._state)
+
+
+  def _cached_value(self, key, fn):
+    value = None
+    if key in self._state:
+      value = self._state[key]
+    else:
+       value = fn()
+       self._state[key] = value
+
+    return value
