@@ -1,7 +1,11 @@
 import random
+from collections import deque
 
 
 class RdioRadio:
+
+  _RETURN_TO_BASE_ARTIST_FREQUENCY = 5
+  _NO_REPEAT_TRACK_COUNT = 25
 
   _RADIO_STATE_FILE_NAME = 'rdio-radio-state.json'
 
@@ -22,12 +26,13 @@ class RdioRadio:
       artist = self._choose_artist(base_artist, last_artist, user)
       track = self._choose_track(artist, user)
 
+    self._record_played_track(track['key'])
     self._save_state()
     return track
 
 
   def _choose_artist(self, base_artist, last_artist, user):
-    if not last_artist or random.randint(1, 5) == 1:
+    if not last_artist or random.randint(1, self._RETURN_TO_BASE_ARTIST_FREQUENCY) == 1:
       return base_artist
 
     chosen_artist = None
@@ -74,3 +79,12 @@ class RdioRadio:
        self._state[key] = value
 
     return value
+
+  def _record_played_track(self, track_key):
+    if not 'played_tracks' in self._state:
+      self._state['played_tracks'] = deque()
+
+    played_tracks = self._state['played_tracks']
+    played_tracks.append(track_key)
+    if len(played_tracks) > self._NO_REPEAT_TRACK_COUNT:
+      played_tracks.popleft()
