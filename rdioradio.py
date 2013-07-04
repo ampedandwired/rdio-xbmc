@@ -24,17 +24,23 @@ class RdioRadio:
       self._state = self._INITIAL_STATE
 
     track = None
+    artist_blacklist = []
     while not track or not track['canStream']:
-      artist = self._choose_artist(base_artist, last_artist, user)
-      track = self._choose_track(artist, user)
-      self._addon.log_debug("xxxxxxxxxxxxxx track is " + str(track))
+      artist = self._choose_artist(base_artist, last_artist, user, artist_blacklist)
+      if artist:
+        track = self._choose_track(artist, user)
+        if not track:
+          artist_blacklist.append(artist)
+      else:
+        # TODO: Should do something clever here, but what? For now reset to initial state.
+        self._state = self._INITIAL_STATE
 
     self._record_played_track(track['key'])
     self._save_state()
     return track
 
 
-  def _choose_artist(self, base_artist, last_artist, user):
+  def _choose_artist(self, base_artist, last_artist, user, artist_blacklist = []):
     if not last_artist or random.randint(1, self._RETURN_TO_BASE_ARTIST_FREQUENCY) == 1:
       return base_artist
 
@@ -44,23 +50,20 @@ class RdioRadio:
     candidate_artist_keys = self._cached_value('related_artists_' + last_artist, lambda: [artist['key'] for artist in self._rdio_api.call('getRelatedArtists', artist = last_artist)])
     if user:
       collection_artist_keys = self._cached_value('artists_in_collection_' + user, lambda: [artist['artistKey'] for artist in self._rdio_api.call('getArtistsInCollection', user = user)])
-      candidate_artist_keys = list(set(candidate_artist_keys) & set(collection_artist_keys))
+      candidate_artist_keys = list((set(candidate_artist_keys) & set(collection_artist_keys)) - set(artist_blacklist))
 
     if candidate_artist_keys:
       chosen_artist = random.choice(candidate_artist_keys)
 
-    if not chosen_artist:
-      chosen_artist = base_artist
-
-    return chosen_artist
+    return chosen_artist or base_artist
 
 
   def _choose_track(self, artist, user):
     tracks = None
     if user:
-      tracks = self._rdio_api.call('getTracksForArtistInCollection', artist = artist, user = user)
+      tracks = self._cached_value('artist_tracks_in_collection_%s_%s' % (artist, user), lambda: self._rdio_api.call('getTracksForArtistInCollection', artist = artist, user = user))
     else:
-      tracks = self._rdio_api.call('getTracksForArtist', artist = artist, extras = 'playCount,isInCollection', start = 0, count = self._NUM_TOP_TRACKS_TO_CHOOSE_FROM)
+      tracks = self._cached_value('artist_tracks_%s' % artist, self._rdio_api.call('getTracksForArtist', artist = artist, extras = 'playCount,isInCollection', start = 0, count = self._NUM_TOP_TRACKS_TO_CHOOSE_FROM))
 
     chosen_track = None
     if tracks:
