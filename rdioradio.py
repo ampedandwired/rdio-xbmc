@@ -6,25 +6,28 @@ class RdioRadio:
 
   _RETURN_TO_BASE_ARTIST_FREQUENCY = 5
   _NO_REPEAT_TRACK_COUNT = 25
+  _NUM_TOP_TRACKS_TO_CHOOSE_FROM = 20
 
   _RADIO_STATE_FILE_NAME = 'rdio-radio-state.json'
+  _INITIAL_STATE = {'played_tracks': deque()}
 
   def __init__(self, addon, rdio_api):
     self._addon = addon
     self._rdio_api = rdio_api
     self._state = addon.load_data(self._RADIO_STATE_FILE_NAME)
     if not self._state:
-      self._state = {}
+      self._state = self._INITIAL_STATE
 
 
   def next_track(self, base_artist, last_artist = None, user = None):
     if not last_artist:
-      self._state = {}
+      self._state = self._INITIAL_STATE
 
     track = None
     while not track or not track['canStream']:
       artist = self._choose_artist(base_artist, last_artist, user)
       track = self._choose_track(artist, user)
+      self._addon.log_debug("xxxxxxxxxxxxxx track is " + str(track))
 
     self._record_played_track(track['key'])
     self._save_state()
@@ -57,13 +60,18 @@ class RdioRadio:
     if user:
       tracks = self._rdio_api.call('getTracksForArtistInCollection', artist = artist, user = user)
     else:
-      tracks = self._rdio_api.call('getTracksForArtist', artist = artist, extras = 'playCount,isInCollection', start = 0, count = 15)
+      tracks = self._rdio_api.call('getTracksForArtist', artist = artist, extras = 'playCount,isInCollection', start = 0, count = self._NUM_TOP_TRACKS_TO_CHOOSE_FROM)
 
-    track = None
+    chosen_track = None
     if tracks:
-      track = random.choice(tracks)
+      played_tracks = self._state['played_tracks']
+      track_keys = [track['key'] for track in tracks]
+      candidate_track_keys = list(set(track_keys) - set(played_tracks))
+      if candidate_track_keys:
+        track_key = random.choice(candidate_track_keys)
+        chosen_track = next(track for track in tracks if track['key'] == track_key)
 
-    return track
+    return chosen_track
 
 
   def _save_state(self):
@@ -81,9 +89,6 @@ class RdioRadio:
     return value
 
   def _record_played_track(self, track_key):
-    if not 'played_tracks' in self._state:
-      self._state['played_tracks'] = deque()
-
     played_tracks = self._state['played_tracks']
     played_tracks.append(track_key)
     if len(played_tracks) > self._NO_REPEAT_TRACK_COUNT:
