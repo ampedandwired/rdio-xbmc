@@ -8,9 +8,10 @@ class RdioRadio:
   _NO_REPEAT_TRACK_COUNT = 25
   _NUM_TOP_TRACKS_TO_CHOOSE_FROM = 20
   _MAX_RELATED_ARTIST_DEPTH = 3
+  _NO_REPEAT_ARTIST_COUNT = 5
 
   _RADIO_STATE_FILE_NAME = 'rdio-radio-state.json'
-  _INITIAL_STATE = {'played_tracks': deque()}
+  _INITIAL_STATE = {'played_tracks': deque(), 'played_artists': deque()}
 
   def __init__(self, addon, rdio_api):
     self._addon = addon
@@ -49,7 +50,7 @@ class RdioRadio:
           break
 
     if track:
-      self._record_played_track(track['key'])
+      self._record_played_track(track)
 
     self._save_state()
     return track
@@ -136,8 +137,13 @@ class RdioRadio:
 
     return value
 
-  def _record_played_track(self, track_key):
+  def _record_played_track(self, track):
     played_tracks = self._state['played_tracks']
-    played_tracks.append(track_key)
+    played_tracks.append(track['key'])
     if len(played_tracks) > self._NO_REPEAT_TRACK_COUNT:
       played_tracks.popleft()
+
+    played_artists = self._state['played_artist']
+    played_artists.append(track['artistKey'])
+    if len(played_artists) > self._NO_REPEAT_ARTIST_COUNT:
+      played_artists.popleft()
