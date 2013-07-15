@@ -512,34 +512,23 @@ class XbmcRdioOperation:
   def play_artist_radio(self, **params):
     artist = params['key']
     user = params['user'] if 'user' in params else None
-
     radio = RdioRadio(self._addon, self._rdio_api)
-    track = radio.next_track(params['key'], user = user)
+    radio.start_radio(artist, user)
+    track = radio.next_track()
     if track:
       playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
       playlist.clear()
-      queries = {'mode': 'play_artist_radio_track', 'artist': artist, 'baseArtist': artist}
-      if user:
-        queries['user'] = user
-      self._add_tracks([track], xbmc_playlist = playlist, extra_queries = queries)
+      self._add_tracks([track], xbmc_playlist = playlist, extra_queries = {'mode': 'play_artist_radio_track'})
       xbmc.Player().play(playlist)
 
   def play_artist_radio_track(self, **params):
     self.play(**params)
 
-    this_artist = params['artist']
-    base_artist = params['baseArtist']
-    user = params['user'] if 'user' in params else None
-
     radio = RdioRadio(self._addon, self._rdio_api)
-    track = radio.next_track(base_artist, this_artist, user = user)
+    track = radio.next_track()
     if track:
       playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
-      queries = {'mode': 'play_artist_radio_track', 'artist': track['artistKey'], 'baseArtist': base_artist}
-      if user:
-        queries['user'] = user
-
-      self._add_tracks([track], xbmc_playlist = playlist, extra_queries = queries)
+      self._add_tracks([track], xbmc_playlist = playlist, extra_queries = {'mode': 'play_artist_radio_track'})
 
 
   def reauthenticate(self):

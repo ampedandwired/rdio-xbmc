@@ -7,7 +7,7 @@ class RdioRadio:
   _RETURN_TO_BASE_ARTIST_FREQUENCY = 5
   _NO_REPEAT_TRACK_COUNT = 25
   _NUM_TOP_TRACKS_TO_CHOOSE_FROM = 20
-  _MAX_RELATED_ARTIST_DEPTH = 3
+  _RELATED_ARTIST_DEPTH = 3
   _NO_REPEAT_ARTIST_COUNT = 5
 
   _RADIO_STATE_FILE_NAME = 'rdio-radio-state.json'
@@ -21,31 +21,39 @@ class RdioRadio:
       self._state = self._INITIAL_STATE
 
 
-  def next_track(self, base_artist, last_artist = None, user = None):
-    if not last_artist:
-      self._state = self._INITIAL_STATE
+  def start_radio(self, base_artist, user = None):
+    self._state = self._INITIAL_STATE
+    self._state['base_artist'] = base_artist
+    self._state['user'] = user
+    self._save_state()
 
+
+  def next_track(self):
     track = None
-    artist_blacklist = [base_artist, last_artist]
+    base_artist = self._state['base_artist']
+    last_artist = self._state['played_artists'][-1] if self._state['played_artists'] else None
+    user = self._state['user']
+    artist_blacklist = [base_artist] + list(self._state['played_artists'])
     use_base_artist = not last_artist or random.randint(1, self._RETURN_TO_BASE_ARTIST_FREQUENCY) == 1
 
     attempt_number = 0
     while not track:
       attempt_number = attempt_number + 1
-      artist = base_artist if use_base_artist else self._choose_artist(base_artist, last_artist, user, artist_blacklist)
+      artist = base_artist if use_base_artist else self._choose_artist(last_artist, user, artist_blacklist)
       if artist:
         track = self._choose_track(artist, user)
         if not track:
+          self._addon.log_debug("No tracks found for artist %s, adding to blacklist" % artist)
           artist_blacklist.append(artist)
       else:
         self._addon.log_debug("Didn't find an artist")
-        if attempt_number == 1:
-          self._addon.log_debug("Clearing blacklist")
-          artist_blacklist = []
-        elif attempt_number == 2:
-          self._addon.log_debug("Clearing played tracks list")
+        if attempt_number >= 1:
+          self._addon.log_debug("Allowing base artist and artist repeats")
+          artist_blacklist = list(set(artist_blacklist) - (set([base_artist]) | set(self._state['played_artists'])))
+        if attempt_number >= 2:
+          self._addon.log_debug("Allowing track repeats")
           self._state['played_tracks'] = deque()
-        else:
+        if attempt_number >= 3:
           self._addon.log_debug("Giving up")
           break
 
@@ -56,10 +64,10 @@ class RdioRadio:
     return track
 
 
-  def _choose_artist(self, base_artist, last_artist, user, artist_blacklist = None, depth = 1):
-    self._addon.log_debug("Choosing artist with base artist %s and last artist %s" % (base_artist, last_artist))
+  def _choose_artist(self, last_artist, user, artist_blacklist = None, depth = 1):
+    self._addon.log_debug("Choosing artist with last artist %s" % last_artist)
 
-    candidate_artist_keys = self._candidate_artists(base_artist, last_artist, user, artist_blacklist)
+    candidate_artist_keys = self._candidate_artists(last_artist, user, artist_blacklist)
     if candidate_artist_keys:
       chosen_artist = random.choice(candidate_artist_keys)
     else:
@@ -69,7 +77,7 @@ class RdioRadio:
     return chosen_artist
 
 
-  def _candidate_artists(self, base_artist, last_artist, user, artist_blacklist = None, artist_recurse_blacklist = None, depth = 1):
+  def _candidate_artists(self, last_artist, user, artist_blacklist = None, artist_recurse_blacklist = None, depth = 1):
     self._addon.log_debug("Finding candidate artists with last artist %s" % last_artist)
     if artist_blacklist is None:
       artist_blacklist = []
@@ -90,7 +98,7 @@ class RdioRadio:
     candidate_artist_keys = list(set(allowed_related_artist_keys) & set(collection_artist_keys))
     self._addon.log_debug("Candidate artists: %s" % str(candidate_artist_keys))
 
-    if not candidate_artist_keys and depth < self._MAX_RELATED_ARTIST_DEPTH:
+    if not candidate_artist_keys and depth < self._RELATED_ARTIST_DEPTH:
       if artist_recurse_blacklist is None:
         artist_recurse_blacklist = []
 
@@ -99,7 +107,7 @@ class RdioRadio:
       recurse_artists = list(set(related_artist_keys) - set(artist_recurse_blacklist))
       self._addon.log_debug("Recursing related artists %s, recurse blacklist: %s" % (str(recurse_artists), str(artist_recurse_blacklist)))
       for related_artist in recurse_artists:
-        candidate_artist_keys = self._candidate_artists(base_artist, related_artist, user, artist_blacklist, artist_recurse_blacklist, depth + 1)
+        candidate_artist_keys = self._candidate_artists(related_artist, user, artist_blacklist, artist_recurse_blacklist, depth + 1)
         if candidate_artist_keys:
           break
 
@@ -143,7 +151,7 @@ class RdioRadio:
     if len(played_tracks) > self._NO_REPEAT_TRACK_COUNT:
       played_tracks.popleft()
 
-    played_artists = self._state['played_artist']
+    played_artists = self._state['played_artists']
     played_artists.append(track['artistKey'])
     if len(played_artists) > self._NO_REPEAT_ARTIST_COUNT:
       played_artists.popleft()
