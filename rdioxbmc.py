@@ -111,7 +111,12 @@ class RdioApi:
 
   def resolve_playback_url(self, key):
     playback_url = None
-    stream_mode = int(self._addon.get_setting('stream_mode'))
+    try:
+      stream_mode = int(self._addon.get_setting('stream_mode'))
+    except ValueError:
+      self._addon.log_debug('stream_mode not set, defaulting')
+      stream_mode = None;
+
     if not stream_mode:
       playback_url = self._resolve_rtmp_playback_url_via_flash(key)
     elif stream_mode == 1:
