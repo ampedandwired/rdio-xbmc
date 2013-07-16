@@ -120,7 +120,7 @@ class RdioRadio:
     if user:
       tracks = self._cached_value('artist_tracks_in_collection_%s_%s' % (artist, user), lambda: self._rdio_api.call('getTracksForArtistInCollection', artist = artist, user = user))
     else:
-      tracks = self._cached_value('artist_tracks_%s' % artist, self._rdio_api.call('getTracksForArtist', artist = artist, extras = 'playCount,isInCollection', start = 0, count = self._NUM_TOP_TRACKS_TO_CHOOSE_FROM))
+      tracks = self._cached_value('artist_tracks_%s' % artist, lambda: self._rdio_api.call('getTracksForArtist', artist = artist, extras = 'playCount,isInCollection', start = 0, count = self._NUM_TOP_TRACKS_TO_CHOOSE_FROM))
 
     chosen_track = None
     if tracks:
