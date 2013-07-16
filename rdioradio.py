@@ -38,7 +38,6 @@ class RdioRadio:
 
     attempt_number = 0
     while not track:
-      attempt_number = attempt_number + 1
       artist = base_artist if use_base_artist else self._choose_artist(last_artist, user, artist_blacklist)
       if artist:
         track = self._choose_track(artist, user)
@@ -47,11 +46,13 @@ class RdioRadio:
           artist_blacklist.append(artist)
       else:
         self._addon.log_debug("Didn't find an artist")
-        if attempt_number >= 1:
+        attempt_number = attempt_number + 1
+        if attempt_number == 1:
           self._addon.log_debug("Allowing base artist and artist repeats")
           artist_blacklist = list(set(artist_blacklist) - (set([base_artist]) | set(self._state['played_artists'])))
-        if attempt_number >= 2:
+        if attempt_number == 2:
           self._addon.log_debug("Allowing track repeats")
+          artist_blacklist = []
           self._state['played_tracks'] = deque()
         if attempt_number >= 3:
           self._addon.log_debug("Giving up")
