@@ -253,6 +253,7 @@ class XbmcRdioOperation:
       albums = self._rdio_api.call('getAlbumsForArtistInCollection', artist = artist, extras = 'playCount,bigIcon,Track.isInCollection')
 
     self._add_albums(albums)
+    xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_UNSORTED)
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_ALBUM)
     xbmcplugin.addSortMethod(self._addon.handle, xbmcplugin.SORT_METHOD_DATE)
     xbmcplugin.setContent(self._addon.handle, 'albums')
