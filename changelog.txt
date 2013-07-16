@@ -1,6 +1,6 @@
 [B]Version 1.9.0[/B]
 - Play a radio station of songs in a user's collection based on a seed artist
-- Fix for failed playback if no stream mode is set (thanks)
+- Fix for failed playback if no stream mode is set (thanks matt-moser)
 
 [B]Version 1.8.1[/B]
 - Encode all menu items as UTF8 (t0mm0 common Addon now requires it)
