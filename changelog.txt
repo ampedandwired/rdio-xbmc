@@ -1,3 +1,10 @@
+[B]Version 1.10.0[/B]
+- Updated icon. To force this to refresh in XBMC you'll need to manually flush the XBMC icon cache and restart XBMC:
+$ sqlite3 ~/.xbmc/userdata/Database/Textures13.db "SELECT cachedurl FROM texture WHERE url like '%plugin.audio.rdio/icon.png';"
+7/768f82b3.png
+$ rm userdata/Thumbnails/7/768f82b3.png
+$ sqlite3 ~/.xbmc/userdata/Database/Textures13.db "DELETE FROM texture WHERE url like '%plugin.audio.rdio/icon.png';"
+
 [B]Version 1.9.0[/B]
 - Play a radio station of songs in a user's collection based on a seed artist
 - Fix for failed playback if no stream mode is set (thanks matt-moser)
