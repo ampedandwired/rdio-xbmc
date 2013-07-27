@@ -1,4 +1,6 @@
 [B]Version 1.10.0[/B]
+- Added addon fanart
+- Show new releases from particular time frames
 - Updated icon. To force this to refresh in XBMC you'll need to manually flush the XBMC icon cache and restart XBMC:
 $ sqlite3 ~/.xbmc/userdata/Database/Textures13.db "SELECT cachedurl FROM texture WHERE url like '%plugin.audio.rdio/icon.png';"
 7/768f82b3.png
