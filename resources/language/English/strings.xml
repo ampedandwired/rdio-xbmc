@@ -42,6 +42,10 @@
   <string id="30231">Remove from Rdio playlist</string>
   <string id="30232">Play radio station for this artist</string>
   <string id="30233">Play collection radio station for this artist</string>
+  <string id="30234">New releases this week</string>
+  <string id="30235">New releases last week</string>
+  <string id="30236">New releases last two weeks</string>
+
 
   <string id="30900">You must supply your Rdio username/password</string>
   <string id="30901">and Rdio API credentials in plugin settings.</string>

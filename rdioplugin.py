@@ -148,10 +148,20 @@ class XbmcRdioOperation:
     xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
 
-  def new_releases(self):
-    albums = self._rdio_api.call('getNewReleases', extras = 'playCount,bigIcon')
+  def new_releases(self, **params):
+    time_frame = params['time'] if 'time' in params else None
+    if time_frame:
+      albums = self._rdio_api.call('getNewReleases', time = time_frame, extras = 'playCount,bigIcon')
+    else:
+      albums = self._rdio_api.call('getNewReleases', extras = 'playCount,bigIcon')
+
     self._add_albums(albums)
     xbmcplugin.setContent(self._addon.handle, 'albums')
+    if not time_frame:
+      self._addon.add_directory({'mode': 'new_releases', 'time': 'thisweek'}, {'title': self._addon.get_string(30234).encode('UTF-8')})
+      self._addon.add_directory({'mode': 'new_releases', 'time': 'lastweek'}, {'title': self._addon.get_string(30235).encode('UTF-8')})
+      self._addon.add_directory({'mode': 'new_releases', 'time': 'twoweeks'}, {'title': self._addon.get_string(30236).encode('UTF-8')})
+
     self._addon.end_of_directory()
 
   def heavy_rotation(self):
