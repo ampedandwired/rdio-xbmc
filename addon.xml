@@ -1,4 +1,4 @@
-<?xml version="1.10.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <addon id="plugin.audio.rdio" version="1.10.0" name="Rdio" provider-name="Charles Blaxland (https://github.com/ampedandwired/rdio-xbmc)">
   <requires>
     <import addon="xbmc.python" version="2.0"/>
