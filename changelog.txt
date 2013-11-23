@@ -1,11 +1,12 @@
 [B]Version 1.10.0[/B]
-- Added addon fanart
+- Added addon fanart for front page
 - Show new releases from particular time frames
-- Updated icon. To force this to refresh in XBMC you'll need to manually flush the XBMC icon cache and restart XBMC:
-$ sqlite3 ~/.xbmc/userdata/Database/Textures13.db "SELECT cachedurl FROM texture WHERE url like '%plugin.audio.rdio/icon.png';"
+- Updated icon. To refresh the icon, open the Rdio plugin and then (possibly) restart XBMC. If this doesn't work, you'll need to
+manually flush the icon cache using something similar to these commands:
+$ sqlite3 <xbmc_home>/userdata/Database/Textures13.db "SELECT cachedurl FROM texture WHERE url like '%plugin.audio.rdio/icon.png';"
 7/768f82b3.png
-$ rm userdata/Thumbnails/7/768f82b3.png
-$ sqlite3 ~/.xbmc/userdata/Database/Textures13.db "DELETE FROM texture WHERE url like '%plugin.audio.rdio/icon.png';"
+$ rm <xbmc_home>/userdata/Thumbnails/7/768f82b3.png
+$ sqlite3 <xbmc_home>/userdata/Database/Textures13.db "DELETE FROM texture WHERE url like '%plugin.audio.rdio/icon.png';"
 
 [B]Version 1.9.0[/B]
 - Play a radio station of songs in a user's collection based on a seed artist

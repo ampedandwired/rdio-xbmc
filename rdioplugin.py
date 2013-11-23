@@ -16,9 +16,11 @@
 
 import sys
 import os
+import traceback
 import inspect
 import time
 import urllib
+import sqlite3
 import xbmcplugin
 import xbmcgui
 from t0mm0.common.addon import Addon
@@ -52,8 +54,9 @@ class XbmcRdioOperation:
 
   def main(self):
 
-    # TODO should get rid of the recursive references to 'mode=main' here as they mess up the ".." nav
+    self.update_icon()
 
+    # TODO should get rid of the recursive references to 'mode=main' here as they mess up the ".." nav
     if self._mandatory_settings_are_valid():
       if not self._rdio_api.authenticated():
         try:
@@ -79,6 +82,36 @@ class XbmcRdioOperation:
 
     self._addon.add_directory({'mode': 'settings'}, {'title': self._addon.get_string(30205).encode('UTF-8')})
     self._addon.end_of_directory()
+
+
+  def update_icon(self):
+    conn = None
+    flag_file = os.path.join(self._addon.get_profile(), 'icon_updated.txt')
+    if not os.path.isfile(flag_file):
+      try:
+          userdata_dir = xbmc.translatePath('special://userdata')
+          conn = sqlite3.connect(os.path.join(userdata_dir, 'Database', 'Textures13.db'))
+          cursor = conn.cursor()
+          cursor.execute("SELECT cachedurl FROM texture WHERE url like '%plugin.audio.rdio/icon.png'")
+          results = cursor.fetchone()
+          self._addon.log_notice("Results %s" % str(results))
+          if len(results) > 0:
+            thumb_file_path = os.path.join(userdata_dir, 'Thumbnails', str(results[0]))
+            self._addon.log_notice('Deleting old icon: %s' % thumb_file_path)
+            if os.path.isfile(thumb_file_path):
+              os.remove(thumb_file_path)
+
+            cursor.execute("DELETE FROM texture WHERE url like '%plugin.audio.rdio/icon.png'")
+            conn.commit()
+
+      except:
+        self._addon.log_error("Unable to update icon")
+        self._addon.log_error(traceback.format_exc())
+
+      finally:
+        open(flag_file, 'a').close()
+        if conn:
+          conn.close()
 
 
   def search_artist_album(self):
@@ -155,13 +188,13 @@ class XbmcRdioOperation:
     else:
       albums = self._rdio_api.call('getNewReleases', extras = 'playCount,bigIcon')
 
-    self._add_albums(albums)
-    xbmcplugin.setContent(self._addon.handle, 'albums')
     if not time_frame:
       self._addon.add_directory({'mode': 'new_releases', 'time': 'thisweek'}, {'title': self._addon.get_string(30234).encode('UTF-8')})
       self._addon.add_directory({'mode': 'new_releases', 'time': 'lastweek'}, {'title': self._addon.get_string(30235).encode('UTF-8')})
       self._addon.add_directory({'mode': 'new_releases', 'time': 'twoweeks'}, {'title': self._addon.get_string(30236).encode('UTF-8')})
 
+    self._add_albums(albums)
+    xbmcplugin.setContent(self._addon.handle, 'albums')
     self._addon.end_of_directory()
 
   def heavy_rotation(self):
@@ -238,6 +271,7 @@ class XbmcRdioOperation:
     self._addon.add_directory({'mode': 'all_albums_for_artist', 'key': key}, {'title': self._addon.get_string(30221).encode('UTF-8')})
     self._addon.add_directory({'mode': 'related_artists', 'key': key}, {'title': self._addon.get_string(30213).encode('UTF-8')})
     self._addon.add_directory({'mode': 'play_artist_radio', 'key': key}, {'title': self._addon.get_string(30232).encode('UTF-8')})
+    # self._addon.add_directory({'mode': 'artist_biography', 'key': key}, {'title': self._addon.get_string(30237).encode('UTF-8')})
     self._addon.end_of_directory()
 
   def artists_in_collection(self, **params):
@@ -277,6 +311,17 @@ class XbmcRdioOperation:
     self._add_artists(artists)
     xbmcplugin.setContent(self._addon.handle, 'artists')
     self._addon.end_of_directory()
+
+  def artist_biography(self, **params):
+    key = params['key']
+    artist = self._rdio_api.call("get", keys = key, extras = '[{"field": "*", "exclude": true}, {"field": "review"}]')[key]
+    biography = artist['review'] if 'review' in artist else self._addon.get_string(30238).encode('UTF-8')
+    window = xbmcgui.Window()
+    control = xbmcgui.ControlTextBox(0, 0, 500, 500)
+    control.setText(biography)
+    window.addControl(control)
+    window.doModal()
+
 
 
   def _add_artists(self, artists):
