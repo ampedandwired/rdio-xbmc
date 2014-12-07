@@ -9,9 +9,9 @@
     <provides>audio</provides>
   </extension>
   <extension point="xbmc.addon.metadata">
-    <summary>Play your Rdio collections and playlists through XBMC</summary>
+    <summary>Play your Rdio collections and playlists through Kodi</summary>
     <description>
-      Rdio is a subscription music service which allows you to manage your music collection and playlists, play and download them to various devices and discover new music through your friends and followers. This addon allows you to play music from Rdio through XBMC.
+      Rdio is a subscription music service which allows you to manage your music collection and playlists, play and download them to various devices and discover new music through your friends and followers. This addon allows you to play music from Rdio through Kodi.
     </description>
     <platform>all</platform>
   </extension>
