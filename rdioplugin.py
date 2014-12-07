@@ -54,8 +54,6 @@ class XbmcRdioOperation:
 
   def main(self):
 
-    self.update_icon()
-
     # TODO should get rid of the recursive references to 'mode=main' here as they mess up the ".." nav
     if self._mandatory_settings_are_valid():
       if not self._rdio_api.authenticated():
@@ -82,36 +80,6 @@ class XbmcRdioOperation:
 
     self._addon.add_directory({'mode': 'settings'}, {'title': self._addon.get_string(30205).encode('UTF-8')})
     self._addon.end_of_directory()
-
-
-  def update_icon(self):
-    conn = None
-    flag_file = os.path.join(self._addon.get_profile(), 'icon_updated.txt')
-    if not os.path.isfile(flag_file):
-      try:
-          userdata_dir = xbmc.translatePath('special://userdata')
-          conn = sqlite3.connect(os.path.join(userdata_dir, 'Database', 'Textures13.db'))
-          cursor = conn.cursor()
-          cursor.execute("SELECT cachedurl FROM texture WHERE url like '%plugin.audio.rdio/icon.png'")
-          results = cursor.fetchone()
-          self._addon.log_notice("Results %s" % str(results))
-          if len(results) > 0:
-            thumb_file_path = os.path.join(userdata_dir, 'Thumbnails', str(results[0]))
-            self._addon.log_notice('Deleting old icon: %s' % thumb_file_path)
-            if os.path.isfile(thumb_file_path):
-              os.remove(thumb_file_path)
-
-            cursor.execute("DELETE FROM texture WHERE url like '%plugin.audio.rdio/icon.png'")
-            conn.commit()
-
-      except:
-        self._addon.log_error("Unable to update icon")
-        self._addon.log_error(traceback.format_exc())
-
-      finally:
-        open(flag_file, 'a').close()
-        if conn:
-          conn.close()
 
 
   def search_artist_album(self):
