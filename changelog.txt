@@ -1,3 +1,6 @@
+[B]Version 1.14.1[/B]
+- Updates for official repo compatibility
+
 [B]Version 1.14.0[/B]
 - Moving to the official repo
 
