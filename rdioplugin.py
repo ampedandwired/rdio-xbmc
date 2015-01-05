@@ -93,16 +93,17 @@ class XbmcRdioOperation:
     kb.doModal()
     if kb.isConfirmed():
       query = kb.getText()
-      search_results = self._rdio_api.call('search', query = query, types = types_to_search, extras = 'playCount,bigIcon')
-      for result in search_results['results']:
-        if result['type'] == self._TYPE_ARTIST:
-          self._add_artist(result)
-        elif result['type'] == self._TYPE_ALBUM:
-          self._add_album(result)
-        elif result['type'] == self._TYPE_PLAYLIST:
-          self._add_playlist(result)
+      if query:
+        search_results = self._rdio_api.call('search', query = query, types = types_to_search, extras = 'playCount,bigIcon')
+        for result in search_results['results']:
+          if result['type'] == self._TYPE_ARTIST:
+            self._add_artist(result)
+          elif result['type'] == self._TYPE_ALBUM:
+            self._add_album(result)
+          elif result['type'] == self._TYPE_PLAYLIST:
+            self._add_playlist(result)
 
-    self._addon.end_of_directory()
+        self._addon.end_of_directory()
 
 
   def albums_in_collection(self, **params):
