@@ -1,5 +1,6 @@
 [B]Version 1.14.1[/B]
 - Updates for official repo compatibility
+- Remove bundled libs (pyamf, httplib2, oauth2) in favour of script modules bundled with Kodi
 
 [B]Version 1.14.0[/B]
 - Moving to the official repo
